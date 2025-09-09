@@ -1,0 +1,38 @@
+name: 'hirewire'
+version: '1.0.0'
+config-version: 2
+
+# Minimum DBT version required
+require-dbt-version: [">=1.9.0", "<2.0.0"]
+
+profile: 'hirewire'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  hirewire:
+    staging:
+      materialized: table
+    intermediate:
+      materialized: table
+    marts:
+      materialized: table
+    
+# Use DuckDB star schema directly instead of transforming from PostgreSQL
+vars:
+  use_star_schema: true
+
+on-run-start:
+  - "INSTALL postgres_scanner"
+  - "LOAD postgres_scanner"
+  - "INSTALL icu"
+  - "LOAD icu"

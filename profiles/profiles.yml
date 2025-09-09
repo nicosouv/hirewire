@@ -1,0 +1,11 @@
+hirewire:
+  target: duckdb
+  outputs:    
+    duckdb:
+      type: duckdb
+      path: /data/hirewire.duckdb
+      threads: 4
+      extensions:
+        - httpfs
+        - postgres_scanner
+        - icu

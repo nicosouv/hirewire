@@ -1,0 +1,100 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: hirewire_postgres
+    environment:
+      POSTGRES_DB: hirewire
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/postgres:/docker-entrypoint-initdb.d
+    networks:
+      - hirewire_network
+
+  duckdb_init:
+    build:
+      context: .
+      dockerfile: .infra/docker/duckdb.Dockerfile
+    container_name: hirewire_duckdb_init
+    volumes:
+      - duckdb_data:/data
+      - ./data:/data-local
+      - ./sql/duckdb:/sql/duckdb
+      - ./scripts:/scripts
+    networks:
+      - hirewire_network
+    command: >
+      sh -c "
+        /scripts/setup/init_duckdb.sh;
+        echo 'DuckDB initialization completed. Container will exit.';
+      "
+    restart: "no"
+    profiles:
+      - init
+
+  dbt:
+    build:
+      context: .
+      dockerfile: .infra/docker/dbt.Dockerfile
+    container_name: hirewire_dbt
+    platform: linux/amd64
+    volumes:
+      - ./dbt_project:/usr/app
+      - ./profiles:/root/.dbt
+      - ./data:/data
+    networks:
+      - hirewire_network
+    depends_on:
+      - postgres
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do sleep 30; done"]
+
+  redis:
+    image: redis:7-alpine
+    container_name: hirewire_redis
+    networks:
+      - hirewire_network
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  superset:
+    build:
+      context: .
+      dockerfile: .infra/docker/superset.Dockerfile
+    container_name: hirewire_superset
+    platform: linux/amd64
+    ports:
+      - "8088:8088"
+    environment:
+      DATABASE_URL: postgresql://superset:superset@postgres:5432/superset
+      REDIS_HOST: redis
+      SUPERSET_SECRET_KEY:  ${SUPERSET_SECRET_KEY:-your-secret-key-change-in-production}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - hirewire_network
+    volumes:
+      - superset_data:/app/superset_home
+      - ./data:/app/duckdb-data
+    healthcheck:
+      test: curl --fail http://localhost:8088/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    profiles:
+      - superset
+
+volumes:
+  postgres_data:
+  duckdb_data:
+  redis_data:
+  superset_data:
+
+networks:
+  hirewire_network:
+    driver: bridge

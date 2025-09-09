@@ -1,0 +1,16 @@
+version: 2
+
+# PostgreSQL sources accessed via postgres_scan() in staging models
+# No need to define sources here since we use postgres_scan directly
+
+sources:
+  - name: duckdb_star_schema
+    description: DuckDB star schema tables populated by ETL
+    database: hirewire
+    tables:
+      - name: dim_companies
+        description: Company dimension table
+      - name: dim_job_positions  
+        description: Job position dimension table
+      - name: fact_interview_processes
+        description: Interview process fact table
