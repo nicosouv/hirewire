@@ -41,6 +41,9 @@ services:
       dockerfile: .infra/docker/dbt.Dockerfile
     container_name: hirewire_dbt
     platform: linux/amd64
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
     volumes:
       - ./dbt_project:/usr/app
       - ./profiles:/root/.dbt
