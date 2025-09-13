@@ -147,4 +147,10 @@ if [ $# -eq 0 ]; then
     echo ""
     echo "💡 Usage en ligne de commande:"
     echo "./scripts/add_single_interview.sh 1 'technical_video' '2024-01-20 14:00' 90 'John Doe' 4"
+    echo ""
+    echo "🔗 Workflow suggéré :"
+    echo "1. ./scripts/add_company.sh pour ajouter une entreprise"
+    echo "2. ./scripts/add_job_position.sh [company_id] pour ajouter un poste" 
+    echo "3. ./scripts/add_process.sh [position_id] pour ajouter un processus"
+    echo "4. ./scripts/add_single_interview.sh [process_id] pour ajouter des entretiens"
 fi

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Ajouter un poste
-# Usage: ./scripts/add_job_position.sh [company_name] [titre] [department] [level] [salary_min] [salary_max]
+# Usage: ./scripts/add_job_position.sh [company_id] [titre] [department] [level] [salary_min] [salary_max]
 
 set -e
 
@@ -22,10 +22,14 @@ if [ $# -eq 0 ]; then
     
     # List companies
     echo "Entreprises disponibles:"
-    exec_sql "SELECT id, name FROM hirewire.companies ORDER BY name;" | grep -E '^[[:space:]]*[0-9]+' | sed 's/^[[:space:]]*/- /'
+    exec_sql "
+    SELECT id || ': ' || name
+    FROM hirewire.companies 
+    ORDER BY name;
+    " | grep -v '^$' | sed 's/^[[:space:]]*/- /'
     echo ""
     
-    read -p "Nom de l'entreprise: " company_name
+    read -p "ID de l'entreprise: " company_id
     read -p "Titre du poste: " title
     read -p "Département [Engineering]: " department
     department=${department:-Engineering}
@@ -38,7 +42,7 @@ if [ $# -eq 0 ]; then
     read -p "Salaire max (€): " salary_max
 else
     # Mode commande
-    company_name="$1"
+    company_id="$1"
     title="$2"
     department="${3:-Engineering}"
     level="$4"
@@ -48,16 +52,16 @@ else
     salary_max="$8"
 fi
 
-if [[ -z "$company_name" || -z "$title" ]]; then
-    echo "❌ Le nom de l'entreprise et le titre sont obligatoires"
+if [[ -z "$company_id" || -z "$title" ]]; then
+    echo "❌ L'ID de l'entreprise et le titre sont obligatoires"
     exit 1
 fi
 
-# Get company ID
-company_id=$(get_company_id "$company_name")
-if [[ -z "$company_id" ]]; then
-    echo "❌ Entreprise '$company_name' non trouvée"
-    echo "💡 Ajoutez-la d'abord avec: ./scripts/add_company.sh '$company_name'"
+# Verify company exists
+company_name=$(exec_sql "SELECT name FROM hirewire.companies WHERE id = $company_id;" | grep -v '^$' | head -1 | xargs)
+if [[ -z "$company_name" ]]; then
+    echo "❌ Entreprise avec l'ID $company_id non trouvée"
+    echo "💡 Vérifiez l'ID ou ajoutez l'entreprise avec: ./scripts/add_company.sh"
     exit 1
 fi
 
@@ -87,5 +91,5 @@ echo "✅ Poste '$title' chez '$company_name' ajouté (ID: $position_id)"
 if [ $# -eq 0 ]; then
     echo ""
     echo "💡 Usage en ligne de commande:"
-    echo "./scripts/add_job_position.sh 'TechCorp' 'Senior Developer' 'Engineering' 'senior' 'full-time' 'remote' 65000 85000"
+    echo "./scripts/add_job_position.sh 1 'Senior Developer' 'Engineering' 'senior' 'full-time' 'remote' 65000 85000"
 fi

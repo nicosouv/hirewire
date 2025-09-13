@@ -1,6 +1,6 @@
 #!/bin/bash
 # Ajouter un processus d'entretien
-# Usage: ./scripts/add_process.sh [company_name] [job_title] [app_date] [source] [status]
+# Usage: ./scripts/add_process.sh [position_id] [app_date] [source] [status]
 
 set -e
 
@@ -29,15 +29,14 @@ if [ $# -eq 0 ]; then
     # List available positions
     echo "Postes disponibles:"
     exec_sql "
-    SELECT c.name || ' - ' || jp.title 
+    SELECT jp.id || ': ' || c.name || ' - ' || jp.title 
     FROM hirewire.job_positions jp 
     JOIN hirewire.companies c ON jp.company_id = c.id 
     ORDER BY c.name, jp.title;
     " | grep -v '^$' | sed 's/^[[:space:]]*/- /'
     echo ""
     
-    read -p "Nom de l'entreprise: " company_name
-    read -p "Titre du poste: " job_title
+    read -p "ID du poste: " position_id
     read -p "Date de candidature [$(date +%Y-%m-%d)]: " app_date
     app_date=${app_date:-$(date +%Y-%m-%d)}
     
@@ -52,24 +51,28 @@ if [ $# -eq 0 ]; then
     read -p "Notes (optionnel): " notes
 else
     # Mode commande
-    company_name="$1"
-    job_title="$2"
-    app_date="${3:-$(date +%Y-%m-%d)}"
-    source="${4:-linkedin}"
-    status="${5:-applied}"
-    notes="$6"
+    position_id="$1"
+    app_date="${2:-$(date +%Y-%m-%d)}"
+    source="${3:-linkedin}"
+    status="${4:-applied}"
+    notes="$5"
 fi
 
-if [[ -z "$company_name" || -z "$job_title" ]]; then
-    echo "❌ Le nom de l'entreprise et le titre du poste sont obligatoires"
+if [[ -z "$position_id" ]]; then
+    echo "❌ L'ID du poste est obligatoire"
     exit 1
 fi
 
-# Get position ID
-position_id=$(get_position_id "$company_name" "$job_title")
-if [[ -z "$position_id" ]]; then
-    echo "❌ Poste '$job_title' chez '$company_name' non trouvé"
-    echo "💡 Ajoutez-le d'abord avec: ./scripts/add_job_position.sh '$company_name' '$job_title'"
+# Verify position exists and get company/job info
+position_info=$(exec_sql "
+    SELECT c.name || ' - ' || jp.title
+    FROM hirewire.job_positions jp 
+    JOIN hirewire.companies c ON jp.company_id = c.id 
+    WHERE jp.id = $position_id;
+" | grep -v '^$' | head -1 | xargs)
+if [[ -z "$position_info" ]]; then
+    echo "❌ Poste avec l'ID $position_id non trouvé"
+    echo "💡 Vérifiez l'ID ou ajoutez le poste avec: ./scripts/add_job_position.sh"
     exit 1
 fi
 
@@ -84,8 +87,7 @@ result=$(exec_sql "$sql")
 process_id=$(echo "$result" | grep -o '[0-9]\+' | head -1)
 
 echo "✅ Processus d'entretien ajouté (ID: $process_id)"
-echo "   Entreprise: $company_name"
-echo "   Poste: $job_title"
+echo "   Poste: $position_info"
 echo "   Date: $app_date"
 echo "   Source: $source"
 echo "   Statut: $status"
@@ -94,5 +96,5 @@ echo "   Statut: $status"
 if [ $# -eq 0 ]; then
     echo ""
     echo "💡 Usage en ligne de commande:"
-    echo "./scripts/add_process.sh 'TechCorp' 'Senior Developer' '2024-01-15' 'linkedin' 'interviewing'"
+    echo "./scripts/add_process.sh 1 '2024-01-15' 'linkedin' 'interviewing'"
 fi
