@@ -65,6 +65,29 @@ service_in_list() {
     return 1
 }
 
+# Function to export Superset dashboards before building
+export_superset_dashboards() {
+    echo "🔄 Attempting to export Superset dashboards..."
+    
+    # Check if Superset container is running
+    if docker-compose ps superset | grep -q "Up"; then
+        echo "📊 Exporting dashboards from running Superset instance..."
+        
+        # Export dashboards
+        if docker-compose exec -T superset superset export-dashboards -f /tmp/hirewire_dashboards.zip 2>/dev/null; then
+            # Copy the export to build context
+            docker cp "$(docker-compose ps -q superset):/tmp/hirewire_dashboards.zip" .infra/docker/hirewire_dashboards.zip
+            echo "✅ Dashboards exported successfully"
+        else
+            echo "⚠️  Failed to export dashboards, creating empty archive"
+            touch .infra/docker/hirewire_dashboards.zip
+        fi
+    else
+        echo "⚠️  Superset not running, creating empty dashboard archive"
+        touch .infra/docker/hirewire_dashboards.zip
+    fi
+}
+
 # Function to build and push image
 build_and_push() {
     local service=$1
@@ -75,6 +98,11 @@ build_and_push() {
     echo "Building ${service} image..."
     echo "Image: ${image_name}:${LATEST_TAG}"
     echo "Dockerfile: ${dockerfile}"
+    
+    # Special handling for Superset to export dashboards first
+    if [ "$service" = "superset" ]; then
+        export_superset_dashboards
+    fi
 
     # Build with multiple tags (single platform for compatibility)
     docker build \

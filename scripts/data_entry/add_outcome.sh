@@ -35,6 +35,7 @@ if [ $# -eq 0 ]; then
     JOIN hirewire.companies c ON jp.company_id = c.id
     LEFT JOIN hirewire.interview_outcomes io ON ip.id = io.process_id
     WHERE io.id IS NULL
+    AND ip.status NOT IN ('reminder')
     ORDER BY ip.id DESC;
     " | grep -v '^$' | sed 's/^[[:space:]]*/- /'
     echo ""

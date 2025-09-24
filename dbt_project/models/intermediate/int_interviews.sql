@@ -23,9 +23,9 @@ SELECT
     i.technical_topics,
     
     -- Enrichments
-    CASE 
+    CASE
         WHEN i.actual_date IS NOT NULL AND i.scheduled_date IS NOT NULL
-        THEN CAST((i.actual_date - i.scheduled_date) AS INTEGER)
+        THEN EXTRACT(DAY FROM (i.actual_date - i.scheduled_date))
         ELSE 0
     END as reschedule_days,
     

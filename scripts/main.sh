@@ -62,7 +62,11 @@ run_script() {
         "etl")
             case $script in
                 "run") bash scripts/etl/etl_runner.sh "$@" ;;
-                *) echo "❌ Unknown ETL script: $script"; echo "Available: run"; exit 1 ;;
+                "update-interviews") bash scripts/etl/etl_update_past_interviews.sh "$@" ;;
+                "update-status") bash scripts/etl/etl_update_process_status.sh "$@" ;;
+                "sync-all") bash scripts/etl/etl_sync_all_statuses.sh "$@" ;;
+                "detect-ghosted") bash scripts/etl/etl_detect_ghosted.sh "$@" ;;
+                *) echo "❌ Unknown ETL script: $script"; echo "Available: run, update-interviews, update-status, sync-all, detect-ghosted"; exit 1 ;;
             esac
             ;;
         "setup")

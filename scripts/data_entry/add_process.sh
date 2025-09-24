@@ -44,7 +44,7 @@ if [ $# -eq 0 ]; then
     read -p "Source [linkedin]: " source
     source=${source:-linkedin}
     
-    echo "Statuts: applied, screening, interviewing, final_round, offer, rejected, accepted, withdrew, ghosted, on_hold"
+    echo "Statuts: applied, tech test, reminder, screening, interviewing, final_round, offer, rejected, accepted, withdrew, ghosted, on_hold"
     read -p "Statut actuel [applied]: " status
     status=${status:-applied}
     
