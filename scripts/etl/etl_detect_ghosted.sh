@@ -103,33 +103,35 @@ fi
 # Step 2: Mark processes as ghosted with detailed reasoning
 ghost "Marking processes as ghosted..."
 GHOSTED_COUNT=$(docker-compose exec -T postgres psql -U postgres -d hirewire -c "
-WITH ghost_updates AS (
-    UPDATE hirewire.interview_processes ip
+WITH ghost_candidates AS (
+    SELECT
+        ip.id,
+        CASE
+            WHEN (CURRENT_DATE - ip.application_date) > 60 AND
+                 (SELECT COUNT(*) FROM hirewire.interviews WHERE process_id = ip.id) = 0
+            THEN 'No response after ' || (CURRENT_DATE - ip.application_date) || ' days'
+            WHEN (SELECT COUNT(*) FROM hirewire.interviews WHERE process_id = ip.id) > 0 AND
+                 (SELECT MAX(scheduled_date) FROM hirewire.interviews WHERE process_id = ip.id) < CURRENT_DATE - INTERVAL '45 days'
+            THEN 'No follow-up after interviews for ' ||
+                 (CURRENT_DATE - (SELECT MAX(scheduled_date) FROM hirewire.interviews WHERE process_id = ip.id)::DATE) || ' days'
+            WHEN ip.status = 'applied' AND (CURRENT_DATE - ip.application_date) > 30 AND
+                 (SELECT COUNT(*) FROM hirewire.interviews WHERE process_id = ip.id) = 0
+            THEN 'Applied status with no response for ' || (CURRENT_DATE - ip.application_date) || ' days'
+            ELSE NULL
+        END as ghost_reason
+    FROM hirewire.interview_processes ip
+    WHERE ip.id NOT IN (SELECT DISTINCT process_id FROM hirewire.interview_outcomes WHERE process_id IS NOT NULL)
+    AND ip.status NOT IN ('ghosted', 'rejected', 'accepted', 'offer', 'withdrew')
+),
+ghost_updates AS (
+    UPDATE hirewire.interview_processes
     SET
         status = 'ghosted',
         updated_at = CURRENT_TIMESTAMP
-    FROM (
-        SELECT
-            ip.id,
-            CASE
-                WHEN (CURRENT_DATE - ip.application_date) > 60 AND
-                     (SELECT COUNT(*) FROM hirewire.interviews WHERE process_id = ip.id) = 0
-                THEN 'No response after ' || (CURRENT_DATE - ip.application_date) || ' days'
-                WHEN (SELECT COUNT(*) FROM hirewire.interviews WHERE process_id = ip.id) > 0 AND
-                     (SELECT MAX(scheduled_date) FROM hirewire.interviews WHERE process_id = ip.id) < CURRENT_DATE - INTERVAL '45 days'
-                THEN 'No follow-up after interviews for ' ||
-                     (CURRENT_DATE - (SELECT MAX(scheduled_date) FROM hirewire.interviews WHERE process_id = ip.id)::DATE) || ' days'
-                WHEN ip.status = 'applied' AND (CURRENT_DATE - ip.application_date) > 30 AND
-                     (SELECT COUNT(*) FROM hirewire.interviews WHERE process_id = ip.id) = 0
-                THEN 'Applied status with no response for ' || (CURRENT_DATE - ip.application_date) || ' days'
-                ELSE NULL
-            END as ghost_reason
-        FROM hirewire.interview_processes ip
-        WHERE ip.id NOT IN (SELECT DISTINCT process_id FROM hirewire.interview_outcomes WHERE process_id IS NOT NULL)
-        AND ip.status NOT IN ('ghosted', 'rejected', 'accepted', 'offer', 'withdrew')
-    ) reasons ON ip.id = reasons.id
-    WHERE reasons.ghost_reason IS NOT NULL
-    RETURNING ip.id, reasons.ghost_reason
+    WHERE id IN (
+        SELECT id FROM ghost_candidates WHERE ghost_reason IS NOT NULL
+    )
+    RETURNING id
 )
 SELECT COUNT(*) FROM ghost_updates;
 " -t | tr -d ' ')
@@ -162,7 +164,7 @@ ON CONFLICT DO NOTHING;
 success "Marked $GHOSTED_COUNT processes as ghosted"
 
 # Step 4: Show summary of ghosted processes
-if [ "$GHOSTED_COUNT" -gt "0" ]; then
+if [ "${GHOSTED_COUNT:-0}" -gt "0" ] 2>/dev/null; then
     ghost "Summary of newly ghosted processes:"
     docker-compose exec -T postgres psql -U postgres -d hirewire -c "
     SELECT

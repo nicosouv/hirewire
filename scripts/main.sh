@@ -13,12 +13,14 @@ show_help() {
     echo "Categories:"
     echo "  data-entry    - Scripts for adding data to PostgreSQL"
     echo "  etl           - ETL pipeline scripts"
+    echo "  export        - Data export scripts for reporting"
     echo "  setup         - Setup and initialization scripts"
     echo "  testing       - Testing and verification scripts"
     echo ""
     echo "Examples:"
     echo "  $0 data-entry manage          # Launch data entry manager"
     echo "  $0 etl run                    # Run complete ETL pipeline"
+    echo "  $0 export france-travail fr   # Export report for France Travail (French)"
     echo "  $0 setup init                 # Initialize DuckDB"
     echo "  $0 testing test               # Test setup"
     echo ""
@@ -32,11 +34,15 @@ show_help() {
     echo "🔄 ETL:"
     ls -1 scripts/etl/*.{sh,py} 2>/dev/null | sed 's|scripts/etl/||' | sed 's|\.(sh\|py)||' | sed 's|^|  - |'
     echo ""
-    
+
+    echo "📤 EXPORT:"
+    ls -1 scripts/export/*.sh 2>/dev/null | sed 's|scripts/export/||' | sed 's|\.sh||' | sed 's|^|  - |'
+    echo ""
+
     echo "⚙️  SETUP:"
     ls -1 scripts/setup/*.sh | sed 's|scripts/setup/||' | sed 's|\.sh||' | sed 's|^|  - |'
     echo ""
-    
+
     echo "🧪 TESTING:"
     ls -1 scripts/testing/*.sh | sed 's|scripts/testing/||' | sed 's|\.sh||' | sed 's|^|  - |'
 }
@@ -67,6 +73,12 @@ run_script() {
                 "sync-all") bash scripts/etl/etl_sync_all_statuses.sh "$@" ;;
                 "detect-ghosted") bash scripts/etl/etl_detect_ghosted.sh "$@" ;;
                 *) echo "❌ Unknown ETL script: $script"; echo "Available: run, update-interviews, update-status, sync-all, detect-ghosted"; exit 1 ;;
+            esac
+            ;;
+        "export")
+            case $script in
+                "france-travail") bash scripts/export/france_travail_export.sh "$@" ;;
+                *) echo "❌ Unknown export script: $script"; echo "Available: france-travail"; exit 1 ;;
             esac
             ;;
         "setup")
