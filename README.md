@@ -6,6 +6,8 @@ A modern data analytics platform to track and analyze my job interview processes
 
 This project uses a dual-database architecture optimized for both transactional and analytical workloads:
 
+- **React + TypeScript Frontend**: Modern web UI with Tailwind CSS design system
+- **FastAPI Backend**: REST API with JWT authentication and business logic
 - **PostgreSQL**: Primary database for raw interview data and transactional operations
 - **DBT**: Data transformation layer that orchestrates PostgreSQL → DuckDB pipeline
 - **DuckDB**: Columnar analytics database with star schema for fast queries
@@ -65,9 +67,17 @@ docker-compose up -d --build
 
 ### Available Services
 
+- **Web Application**: http://localhost:5173 (modern React UI)
+- **Backend API**: http://localhost:8000 (FastAPI with Swagger docs)
 - **PostgreSQL**: `localhost:5432` (postgres/password)
 - **Apache Superset**: http://localhost:8088 (admin/admin)
 - **DuckDB**: File-based at `/data/hirewire.duckdb`
+
+### Default Login Credentials
+
+For the web application:
+- **Email**: admin@hirewire.com
+- **Password**: secret
 
 ## Data Model
 

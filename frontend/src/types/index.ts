@@ -18,13 +18,17 @@ export interface JobPosition {
   id: number;
   company_id: number;
   title: string;
-  department?: string;
   level?: string;
-  employment_type?: string;
-  remote_policy?: string;
+  contract_type?: string;
   salary_min?: number;
   salary_max?: number;
-  currency?: string;
+  location?: string;
+  remote_policy?: string;
+  job_description?: string;
+  requirements?: string;
+  benefits?: string;
+  application_url?: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +106,10 @@ export type OutcomeType =
   | 'accepted'
   | 'ghosted'
   | 'withdrew';
+
+// Type aliases for convenience
+export type Position = JobPosition;
+export type Process = InterviewProcess;
 
 // Dashboard types
 export interface DashboardStats {

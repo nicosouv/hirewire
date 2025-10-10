@@ -44,9 +44,11 @@ export default function Layout() {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-honey-500 to-honey-600 rounded-xl shadow-sm">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
+              <img
+                src="/logo.png"
+                alt="HireWire"
+                className="w-10 h-10 object-contain"
+              />
               <div>
                 <h1 className="text-xl font-display font-bold text-navy-900">
                   HireWire

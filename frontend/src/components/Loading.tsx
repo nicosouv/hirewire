@@ -7,10 +7,14 @@ export default function Loading() {
         {/* Animated logo */}
         <div className="relative inline-flex items-center justify-center mb-6">
           {/* Spinning ring */}
-          <div className="absolute w-20 h-20 border-4 border-honey-200 border-t-honey-500 rounded-full animate-spin"></div>
+          <div className="absolute w-24 h-24 border-4 border-honey-200 border-t-honey-500 rounded-full animate-spin"></div>
           {/* Logo */}
-          <div className="w-16 h-16 bg-gradient-to-br from-honey-500 to-honey-600 rounded-2xl shadow-soft flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-white animate-pulse" />
+          <div className="w-20 h-20 flex items-center justify-center">
+            <img
+              src="/logo.png"
+              alt="HireWire"
+              className="w-full h-full object-contain animate-pulse"
+            />
           </div>
         </div>
 

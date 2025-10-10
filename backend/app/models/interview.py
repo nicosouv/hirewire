@@ -2,7 +2,7 @@
 Interview SQLAlchemy model.
 Maps to hirewire.interviews table.
 """
-from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, Text, func
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, func
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -17,8 +17,8 @@ class Interview(Base):
     process_id = Column(Integer, ForeignKey("hirewire.interview_processes.id"), nullable=False, index=True)
     interview_type = Column(String)
     interview_round = Column(Integer, nullable=False)
-    scheduled_date = Column(Date)
-    actual_date = Column(Date)
+    scheduled_date = Column(DateTime)
+    actual_date = Column(DateTime)
     duration_minutes = Column(Integer)
     interviewer_name = Column(String)
     interviewer_role = Column(String)

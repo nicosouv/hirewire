@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useCompanies, useCreateCompany, useDeleteCompany } from '../hooks/useCompanies';
 import Loading from '../components/Loading';
-import ErrorMessage from '../components/ErrorMessage';
+import { Building2, Plus, Trash2, ExternalLink, MapPin, Users, Briefcase, Globe } from 'lucide-react';
 import type { Company } from '../types';
 
 export default function Companies() {
@@ -39,30 +39,44 @@ export default function Companies() {
   };
 
   if (isLoading) return <Loading />;
-  if (error) return <ErrorMessage message="Failed to load companies" />;
+  if (error) return (
+    <div className="bg-red-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-xl">
+      <p className="font-semibold">Failed to load companies</p>
+      <p className="text-sm mt-1">Please try again later.</p>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Header */}
+      <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Companies</h1>
-          <p className="mt-2 text-gray-600">Manage companies you're interested in</p>
+          <h1 className="text-3xl font-display font-bold text-navy-900">Companies</h1>
+          <p className="mt-2 text-anthracite/70">Manage companies you're interested in</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
         >
-          {showForm ? 'Cancel' : '+ Add Company'}
+          <Plus className="w-5 h-5" />
+          {showForm ? 'Cancel' : 'Add Company'}
         </button>
       </div>
 
+      {/* Add Form */}
       {showForm && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Add New Company</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-2xl shadow-card border border-sand/50 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-honey-100 rounded-xl flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-honey-600" />
+            </div>
+            <h2 className="text-xl font-display font-semibold text-navy-900">Add New Company</h2>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-navy-900 mb-2">
                   Company Name *
                 </label>
                 <input
@@ -70,71 +84,86 @@ export default function Companies() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-sand bg-ivory/50 rounded-xl text-anthracite placeholder-anthracite/40 focus:outline-none focus:ring-2 focus:ring-honey-500 focus:border-transparent transition-all"
                   placeholder="e.g., Acme Corporation"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-navy-900 mb-2">
                   Industry
                 </label>
                 <input
                   type="text"
                   value={formData.industry}
                   onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="e.g., Technology"
+                  className="w-full px-4 py-3 border border-sand bg-ivory/50 rounded-xl text-anthracite placeholder-anthracite/40 focus:outline-none focus:ring-2 focus:ring-honey-500 focus:border-transparent transition-all"
+                  placeholder="e.g., Technology, Finance"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-navy-900 mb-2">
                   Company Size
                 </label>
                 <input
                   type="text"
                   value={formData.size}
                   onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="e.g., 100"
+                  className="w-full px-4 py-3 border border-sand bg-ivory/50 rounded-xl text-anthracite placeholder-anthracite/40 focus:outline-none focus:ring-2 focus:ring-honey-500 focus:border-transparent transition-all"
+                  placeholder="e.g., 50-200 employees"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-navy-900 mb-2">
                   Location
                 </label>
                 <input
                   type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-sand bg-ivory/50 rounded-xl text-anthracite placeholder-anthracite/40 focus:outline-none focus:ring-2 focus:ring-honey-500 focus:border-transparent transition-all"
                   placeholder="e.g., Paris, France"
                 />
               </div>
+
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-navy-900 mb-2">
                   Website
                 </label>
                 <input
                   type="url"
                   value={formData.website}
                   onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-sand bg-ivory/50 rounded-xl text-anthracite placeholder-anthracite/40 focus:outline-none focus:ring-2 focus:ring-honey-500 focus:border-transparent transition-all"
                   placeholder="https://example.com"
                 />
               </div>
             </div>
-            <div className="flex gap-3">
+
+            <div className="flex gap-3 pt-2">
               <button
                 type="submit"
                 disabled={createCompany.isPending}
-                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02]"
               >
-                {createCompany.isPending ? 'Creating...' : 'Create Company'}
+                {createCompany.isPending ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5" />
+                    Create Company
+                  </>
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                className="px-6 py-3 border-2 border-navy-900 text-navy-900 font-semibold rounded-xl hover:bg-navy-900 hover:text-white transition-all"
               >
                 Cancel
               </button>
@@ -143,19 +172,31 @@ export default function Companies() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {companies?.map((company) => (
-          <CompanyCard
-            key={company.id}
-            company={company}
-            onDelete={handleDelete}
-          />
-        ))}
-      </div>
-
-      {companies?.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No companies yet. Add your first company!</p>
+      {/* Companies Grid */}
+      {companies && companies.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {companies.map((company) => (
+            <CompanyCard
+              key={company.id}
+              company={company}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-sand rounded-2xl mb-4">
+            <Building2 className="w-8 h-8 text-anthracite/40" />
+          </div>
+          <h3 className="text-lg font-semibold text-navy-900 mb-2">No companies yet</h3>
+          <p className="text-anthracite/60 mb-6">Start by adding your first company</p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
+          >
+            <Plus className="w-5 h-5" />
+            Add Your First Company
+          </button>
         </div>
       )}
     </div>
@@ -169,46 +210,70 @@ interface CompanyCardProps {
 
 function CompanyCard({ company, onDelete }: CompanyCardProps) {
   return (
-    <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+    <div className="bg-white rounded-2xl shadow-card border border-sand/50 p-6 hover:shadow-soft transition-all group">
+      {/* Header */}
       <div className="flex justify-between items-start mb-4">
-        <h3 className="text-xl font-semibold text-gray-900">{company.name}</h3>
+        <div className="flex items-start gap-3 flex-1">
+          <div className="w-12 h-12 bg-gradient-to-br from-honey-400 to-honey-500 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Building2 className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-display font-semibold text-navy-900 truncate">
+              {company.name}
+            </h3>
+            {company.industry && (
+              <p className="text-sm text-anthracite/60 flex items-center gap-1 mt-1">
+                <Briefcase className="w-3.5 h-3.5" />
+                {company.industry}
+              </p>
+            )}
+          </div>
+        </div>
         <button
           onClick={() => onDelete(company.id)}
-          className="text-red-600 hover:text-red-800 text-sm"
+          className="text-anthracite/40 hover:text-red-600 transition-colors p-1.5 hover:bg-red-50 rounded-lg"
+          title="Delete company"
         >
-          Delete
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
-      <div className="space-y-2 text-sm">
-        {company.industry && (
-          <p className="text-gray-600">
-            <span className="font-medium">Industry:</span> {company.industry}
-          </p>
-        )}
+
+      {/* Details */}
+      <div className="space-y-2.5 text-sm">
         {company.size && (
-          <p className="text-gray-600">
-            <span className="font-medium">Size:</span> {company.size} employees
-          </p>
+          <div className="flex items-center gap-2 text-anthracite/70">
+            <Users className="w-4 h-4 text-honey-600" />
+            <span>{company.size} employees</span>
+          </div>
         )}
         {company.location && (
-          <p className="text-gray-600">
-            <span className="font-medium">Location:</span> {company.location}
-          </p>
+          <div className="flex items-center gap-2 text-anthracite/70">
+            <MapPin className="w-4 h-4 text-honey-600" />
+            <span>{company.location}</span>
+          </div>
         )}
         {company.website && (
           <a
             href={company.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1"
+            className="flex items-center gap-2 text-sky-400 hover:text-sky-500 font-medium group/link"
           >
-            Visit Website →
+            <Globe className="w-4 h-4" />
+            <span className="group-hover/link:underline">Visit Website</span>
+            <ExternalLink className="w-3.5 h-3.5" />
           </a>
         )}
       </div>
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <p className="text-xs text-gray-500">
-          Added {new Date(company.created_at).toLocaleDateString()}
+
+      {/* Footer */}
+      <div className="mt-5 pt-4 border-t border-sand">
+        <p className="text-xs text-anthracite/50">
+          Added {new Date(company.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          })}
         </p>
       </div>
     </div>

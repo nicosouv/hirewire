@@ -62,8 +62,12 @@ export default function Register() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo and header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-honey-500 to-honey-600 rounded-2xl shadow-soft mb-4">
-            <Sparkles className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
+            <img
+              src="/logo.png"
+              alt="HireWire"
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-4xl font-display font-bold text-navy-900 mb-2">
             HireWire
