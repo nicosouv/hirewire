@@ -1,13 +1,16 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { usePositions, useCreatePosition, useDeletePosition } from '../hooks/usePositions';
 import { useCompanies } from '../hooks/useCompanies';
+import { useProcesses } from '../hooks/useProcesses';
 import Loading from '../components/Loading';
-import { Briefcase, Plus, Trash2, DollarSign, MapPin, Clock, Building2 } from 'lucide-react';
+import { Briefcase, Plus, Trash2, DollarSign, MapPin, Clock, Building2, GitBranch, ArrowRight } from 'lucide-react';
 import type { Position } from '../types';
 
 export default function Positions() {
   const { data: positions, isLoading, error } = usePositions();
   const { data: companies } = useCompanies();
+  const { data: processes } = useProcesses();
   const createPosition = useCreatePosition();
   const deletePosition = useDeletePosition();
   const [showForm, setShowForm] = useState(false);
@@ -241,6 +244,7 @@ export default function Positions() {
               key={position.id}
               position={position}
               companies={companies || []}
+              processes={processes || []}
               onDelete={handleDelete}
             />
           ))}
@@ -268,11 +272,16 @@ export default function Positions() {
 interface PositionCardProps {
   position: Position;
   companies: any[];
+  processes: any[];
   onDelete: (id: number) => void;
 }
 
-function PositionCard({ position, companies, onDelete }: PositionCardProps) {
+function PositionCard({ position, companies, processes, onDelete }: PositionCardProps) {
   const company = companies.find((c) => c.id === position.company_id);
+  const positionProcesses = processes.filter((p) => p.job_position_id === position.id);
+  const activeProcesses = positionProcesses.filter((p) =>
+    !['rejected', 'accepted', 'withdrew', 'ghosted'].includes(p.status)
+  );
 
   return (
     <div className="bg-white rounded-2xl shadow-card border border-sand/50 p-6 hover:shadow-soft transition-all">
@@ -331,6 +340,56 @@ function PositionCard({ position, companies, onDelete }: PositionCardProps) {
           </div>
         )}
       </div>
+
+      {/* Processes for this position */}
+      {positionProcesses.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-sand">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-navy-900">
+              <GitBranch className="w-4 h-4 text-honey-600" />
+              <span>{positionProcesses.length} Application{positionProcesses.length > 1 ? 's' : ''}</span>
+              {activeProcesses.length > 0 && (
+                <span className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded">
+                  {activeProcesses.length} active
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="space-y-2">
+            {positionProcesses.slice(0, 3).map((process) => (
+              <Link
+                key={process.id}
+                to={`/processes/${process.id}`}
+                className="block p-3 bg-sand/20 hover:bg-sand/40 rounded-lg transition-all group"
+              >
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-anthracite/60">
+                      {new Date(process.application_date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-honey-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <span className="px-2 py-0.5 bg-honey-50 text-honey-700 text-xs font-semibold rounded capitalize">
+                    {process.status.replace('_', ' ')}
+                  </span>
+                </div>
+              </Link>
+            ))}
+            {positionProcesses.length > 3 && (
+              <Link
+                to="/processes"
+                className="block text-center text-xs text-honey-600 hover:text-honey-700 font-semibold py-2"
+              >
+                View all {positionProcesses.length} applications →
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="mt-5 pt-4 border-t border-sand">

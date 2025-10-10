@@ -56,7 +56,7 @@ export default function Companies() {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
+          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-honey-300 transition-all transform hover:scale-[1.02]"
         >
           <Plus className="w-5 h-5" />
           {showForm ? 'Cancel' : 'Add Company'}

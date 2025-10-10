@@ -100,7 +100,7 @@ export default function Layout() {
                     flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all
                     ${
                       active
-                        ? 'bg-gradient-to-r from-honey-500 to-honey-600 text-white shadow-md'
+                        ? 'bg-honey-50 text-honey-700 border-2 border-honey-500 shadow-sm'
                         : 'text-anthracite/70 hover:bg-sand/50 hover:text-navy-900'
                     }
                   `}

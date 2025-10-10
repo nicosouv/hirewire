@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useInterviews, useCreateInterview, useDeleteInterview } from '../hooks/useInterviews';
 import { useProcesses } from '../hooks/useProcesses';
 import { usePositions } from '../hooks/usePositions';
 import { useCompanies } from '../hooks/useCompanies';
 import Loading from '../components/Loading';
-import { Calendar, Plus, Trash2, Clock, User, Star, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Calendar, Plus, Trash2, Clock, User, Star, CheckCircle, XCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import type { Interview } from '../types';
 
 const STATUS_CONFIG = {
@@ -343,10 +344,10 @@ function InterviewCard({ interview, processes, positions, companies, onDelete }:
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="bg-white rounded-2xl shadow-card border border-sand/50 p-6 hover:shadow-soft transition-all">
+    <div className="bg-white rounded-2xl shadow-card border border-sand/50 p-6 hover:shadow-soft transition-all group">
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
+        <Link to={`/processes/${process?.id}`} className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2 py-1 bg-honey-50 text-honey-700 text-xs font-bold rounded">
               Round {interview.interview_round}
@@ -357,17 +358,21 @@ function InterviewCard({ interview, processes, positions, companies, onDelete }:
               </span>
             )}
           </div>
-          <h3 className="text-lg font-display font-semibold text-navy-900">
+          <h3 className="text-lg font-display font-semibold text-navy-900 group-hover:text-honey-600 transition-colors flex items-center gap-2">
             {position?.title || 'Unknown Position'}
+            <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
           </h3>
           {company && (
             <p className="text-sm text-anthracite/60 font-medium">
               {company.name}
             </p>
           )}
-        </div>
+        </Link>
         <button
-          onClick={() => onDelete(interview.id)}
+          onClick={(e) => {
+            e.preventDefault();
+            onDelete(interview.id);
+          }}
           className="text-anthracite/40 hover:text-red-600 transition-colors p-1.5 hover:bg-red-50 rounded-lg"
           title="Delete interview"
         >

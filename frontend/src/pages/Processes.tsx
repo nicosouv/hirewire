@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useProcesses, useCreateProcess, useDeleteProcess } from '../hooks/useProcesses';
 import { usePositions } from '../hooks/usePositions';
 import { useCompanies } from '../hooks/useCompanies';
 import Loading from '../components/Loading';
-import { GitBranch, Plus, Trash2, Calendar, FileText, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { GitBranch, Plus, Trash2, Calendar, FileText, AlertCircle, CheckCircle, Clock, ArrowRight } from 'lucide-react';
 import type { Process } from '../types';
 
 const STATUS_CONFIG = {
@@ -256,17 +257,18 @@ function ProcessCard({ process, positions, companies, onDelete }: ProcessCardPro
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="bg-white rounded-2xl shadow-card border border-sand/50 p-6 hover:shadow-soft transition-all">
+    <div className="bg-white rounded-2xl shadow-card border border-sand/50 p-6 hover:shadow-soft transition-all group">
       <div className="flex justify-between items-start gap-4">
-        <div className="flex-1">
+        <Link to={`/processes/${process.id}`} className="flex-1">
           {/* Header */}
           <div className="flex items-start gap-3 mb-4">
             <div className="w-12 h-12 bg-gradient-to-br from-honey-400 to-honey-500 rounded-xl flex items-center justify-center flex-shrink-0">
               <GitBranch className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-display font-semibold text-navy-900">
+              <h3 className="text-lg font-display font-semibold text-navy-900 group-hover:text-honey-600 transition-colors flex items-center gap-2">
                 {position?.title || 'Unknown Position'}
+                <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
               </h3>
               {company && (
                 <p className="text-sm text-anthracite/60 font-medium mt-0.5">
@@ -303,11 +305,14 @@ function ProcessCard({ process, positions, companies, onDelete }: ProcessCardPro
               {process.notes}
             </p>
           )}
-        </div>
+        </Link>
 
         {/* Delete button */}
         <button
-          onClick={() => onDelete(process.id)}
+          onClick={(e) => {
+            e.preventDefault();
+            onDelete(process.id);
+          }}
           className="text-anthracite/40 hover:text-red-600 transition-colors p-1.5 hover:bg-red-50 rounded-lg flex-shrink-0"
           title="Delete process"
         >

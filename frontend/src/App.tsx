@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
 import Positions from './pages/Positions';
 import Processes from './pages/Processes';
+import ProcessDetail from './pages/ProcessDetail';
 import Interviews from './pages/Interviews';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
           <Route path="companies" element={<Companies />} />
           <Route path="positions" element={<Positions />} />
           <Route path="processes" element={<Processes />} />
+          <Route path="processes/:id" element={<ProcessDetail />} />
           <Route path="interviews" element={<Interviews />} />
         </Route>
 

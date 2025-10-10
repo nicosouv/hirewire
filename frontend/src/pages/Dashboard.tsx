@@ -1,9 +1,17 @@
+import { Link } from 'react-router-dom';
 import { useDashboard } from '../hooks/useDashboard';
+import { useProcesses } from '../hooks/useProcesses';
+import { useCompanies } from '../hooks/useCompanies';
+import { usePositions } from '../hooks/usePositions';
 import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
+import { TrendingUp, Briefcase, Calendar, Award, BarChart3, Building2, ArrowRight } from 'lucide-react';
 
 export default function Dashboard() {
   const { data: dashboard, isLoading, error } = useDashboard();
+  const { data: processes } = useProcesses();
+  const { data: companies } = useCompanies();
+  const { data: positions } = usePositions();
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorMessage message="Failed to load dashboard data" />;
@@ -11,40 +19,97 @@ export default function Dashboard() {
 
   const { stats, processes_by_status, interviews_by_type, top_companies, monthly_activity } = dashboard;
 
+  // Get most recent active processes
+  const activeProcesses = processes?.filter(p =>
+    !['rejected', 'accepted', 'withdrew', 'ghosted'].includes(p.status)
+  ).slice(0, 5) || [];
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-2 text-gray-600">Overview of your job search progress</p>
+        <h1 className="text-3xl font-display font-bold text-navy-900">Dashboard</h1>
+        <p className="mt-2 text-anthracite/70">Overview of your job search progress</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Applications"
-          value={stats.total_applications}
-          icon="📝"
-          color="blue"
-        />
-        <StatCard
-          title="Active Processes"
-          value={stats.active_processes}
-          icon="🔄"
-          color="green"
-        />
-        <StatCard
-          title="Total Interviews"
-          value={stats.total_interviews}
-          icon="💬"
-          color="purple"
-        />
+        <Link to="/processes" className="block">
+          <StatCard
+            title="Total Applications"
+            value={stats.total_applications}
+            icon={<Briefcase className="w-6 h-6" />}
+            color="blue"
+          />
+        </Link>
+        <Link to="/processes" className="block">
+          <StatCard
+            title="Active Processes"
+            value={stats.active_processes}
+            icon={<TrendingUp className="w-6 h-6" />}
+            color="green"
+          />
+        </Link>
+        <Link to="/interviews" className="block">
+          <StatCard
+            title="Total Interviews"
+            value={stats.total_interviews}
+            icon={<Calendar className="w-6 h-6" />}
+            color="purple"
+          />
+        </Link>
         <StatCard
           title="Offers Received"
           value={stats.offers_received}
-          icon="🎉"
+          icon={<Award className="w-6 h-6" />}
           color="yellow"
         />
       </div>
+
+      {/* Active Processes Quick View */}
+      {activeProcesses.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-card border border-sand/50 p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-display font-semibold text-navy-900 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-honey-600" />
+              Active Applications
+            </h3>
+            <Link
+              to="/processes"
+              className="text-honey-600 hover:text-honey-700 font-semibold text-sm flex items-center gap-1"
+            >
+              View All <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {activeProcesses.map((process) => {
+              const position = positions?.find(p => p.id === process.job_position_id);
+              const company = companies?.find(c => c.id === position?.company_id);
+              return (
+                <Link
+                  key={process.id}
+                  to={`/processes/${process.id}`}
+                  className="block p-4 bg-sand/20 hover:bg-sand/40 rounded-xl transition-all group"
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-semibold text-navy-900 group-hover:text-honey-600 transition-colors flex items-center gap-2">
+                        {position?.title || 'Unknown Position'}
+                        <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </h4>
+                      <p className="text-sm text-anthracite/60">
+                        {company?.name || 'Unknown Company'}
+                      </p>
+                    </div>
+                    <span className="px-3 py-1 bg-honey-50 text-honey-700 text-xs font-semibold rounded-lg capitalize">
+                      {process.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Additional Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -155,26 +220,26 @@ export default function Dashboard() {
 interface StatCardProps {
   title: string;
   value: number;
-  icon: string;
+  icon: React.ReactNode;
   color: 'blue' | 'green' | 'purple' | 'yellow';
 }
 
 function StatCard({ title, value, icon, color }: StatCardProps) {
   const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    purple: 'bg-purple-50 text-purple-600',
-    yellow: 'bg-yellow-50 text-yellow-600',
+    blue: 'from-blue-400 to-blue-500',
+    green: 'from-green-400 to-green-500',
+    purple: 'from-purple-400 to-purple-500',
+    yellow: 'from-honey-400 to-honey-500',
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-2xl shadow-card border border-sand/50 p-6 hover:shadow-soft transition-all group cursor-pointer">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-600">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+          <p className="text-sm text-anthracite/60 font-medium">{title}</p>
+          <p className="text-3xl font-display font-bold text-navy-900 mt-2">{value}</p>
         </div>
-        <div className={`text-4xl p-3 rounded-lg ${colorClasses[color]}`}>
+        <div className={`p-3 rounded-xl bg-gradient-to-br ${colorClasses[color]} text-white shadow-md group-hover:scale-110 transition-transform`}>
           {icon}
         </div>
       </div>
