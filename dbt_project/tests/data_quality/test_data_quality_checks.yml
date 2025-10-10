@@ -1,0 +1,215 @@
+version: 2
+
+# Advanced data quality tests using dbt-utils
+# These tests go beyond basic schema tests to validate data patterns and quality
+
+tests:
+  # Test for recent activity - ensure we have recent data
+  - name: test_recent_applications_exist
+    description: "Ensure there are applications within the last 90 days (data freshness)"
+    config:
+      severity: warn
+    test: >
+      SELECT
+        'No applications in last 90 days' as issue,
+        MAX(application_date) as last_application_date,
+        CURRENT_DATE - MAX(application_date) as days_since_last_application
+      FROM {{ ref('int_interview_processes') }}
+      WHERE CURRENT_DATE - application_date <= 90
+      HAVING COUNT(*) = 0
+
+  # Test for null status categories (should not happen)
+  - name: test_no_null_status_categories
+    description: "Ensure all processes have valid status categories"
+    config:
+      severity: error
+    test: >
+      SELECT
+        process_id,
+        company_name,
+        job_title,
+        process_status,
+        'Process has null status_category' as issue
+      FROM {{ ref('int_interview_processes') }}
+      WHERE status_category IS NULL
+
+  # Test for orphaned interviews (interviews with no parent process)
+  - name: test_no_orphaned_interviews
+    description: "Ensure no interviews exist without a parent process"
+    config:
+      severity: error
+    test: >
+      SELECT
+        i.interview_id,
+        i.process_id,
+        'Interview exists but process not found' as issue
+      FROM {{ ref('stg_interviews') }} i
+      LEFT JOIN {{ ref('stg_interview_processes') }} p
+        ON i.process_id = p.id
+      WHERE p.id IS NULL
+
+  # Test for duplicate company names (potential data quality issue)
+  - name: test_potential_duplicate_companies
+    description: "Warn about potential duplicate company names (case-insensitive)"
+    config:
+      severity: warn
+    test: >
+      WITH normalized_names AS (
+        SELECT
+          company_id,
+          company_name,
+          LOWER(TRIM(company_name)) as normalized_name
+        FROM {{ ref('int_companies') }}
+      ),
+      duplicates AS (
+        SELECT
+          normalized_name,
+          COUNT(*) as count,
+          STRING_AGG(company_name, ', ') as variations
+        FROM normalized_names
+        GROUP BY normalized_name
+        HAVING COUNT(*) > 1
+      )
+      SELECT
+        normalized_name,
+        count as duplicate_count,
+        variations as company_name_variations,
+        'Potential duplicate company names' as issue
+      FROM duplicates
+
+  # Test for unusual process durations (outliers)
+  - name: test_unusual_process_durations
+    description: "Identify processes with unusually long durations (>180 days)"
+    config:
+      severity: warn
+    test: >
+      SELECT
+        process_id,
+        company_name,
+        job_title,
+        process_duration_days,
+        'Process duration exceeds 180 days' as issue
+      FROM {{ ref('int_interview_outcomes') }}
+      WHERE process_duration_days > 180
+
+  # Test for interviews with unusually long durations
+  - name: test_unusual_interview_durations
+    description: "Identify interviews with unusually long durations (>240 minutes / 4 hours)"
+    config:
+      severity: warn
+    test: >
+      SELECT
+        i.interview_id,
+        p.company_name,
+        p.job_title,
+        i.interview_type,
+        i.duration_minutes,
+        'Interview duration exceeds 4 hours' as issue
+      FROM {{ ref('int_interviews') }} i
+      LEFT JOIN {{ ref('int_interview_processes') }} p
+        ON i.process_id = p.process_id
+      WHERE i.duration_minutes > 240
+
+  # Test for future dates in data (data quality issue)
+  - name: test_no_future_application_dates
+    description: "Ensure no application dates are in the future"
+    config:
+      severity: error
+    test: >
+      SELECT
+        process_id,
+        company_name,
+        job_title,
+        application_date,
+        'Application date is in the future' as issue
+      FROM {{ ref('int_interview_processes') }}
+      WHERE application_date > CURRENT_DATE
+
+  # Test for completed interviews without ratings
+  - name: test_completed_interviews_missing_ratings
+    description: "Identify completed interviews missing ratings (data completeness)"
+    config:
+      severity: warn
+    test: >
+      SELECT
+        i.interview_id,
+        p.company_name,
+        p.job_title,
+        i.interview_type,
+        i.interview_status,
+        'Completed interview missing rating' as issue
+      FROM {{ ref('int_interviews') }} i
+      LEFT JOIN {{ ref('int_interview_processes') }} p
+        ON i.process_id = p.process_id
+      WHERE
+        i.interview_status = 'completed'
+        AND i.rating IS NULL
+
+  # Test for offers without salary information
+  - name: test_offers_missing_salary_info
+    description: "Identify offer outcomes missing salary information"
+    config:
+      severity: warn
+    test: >
+      SELECT
+        o.outcome_id,
+        p.company_name,
+        p.job_title,
+        o.outcome,
+        'Offer outcome missing salary information' as issue
+      FROM {{ ref('int_interview_outcomes') }} o
+      LEFT JOIN {{ ref('int_interview_processes') }} p
+        ON o.process_id = p.process_id
+      WHERE
+        o.outcome IN ('offer', 'accepted', 'hired')
+        AND o.offer_salary IS NULL
+
+  # Test for consistent currency usage
+  - name: test_currency_consistency
+    description: "Ensure offer currency matches job position currency when both exist"
+    config:
+      severity: warn
+    test: >
+      SELECT
+        o.outcome_id,
+        p.company_name,
+        p.job_title,
+        j.currency as position_currency,
+        o.offer_currency,
+        'Currency mismatch between position and offer' as issue
+      FROM {{ ref('int_interview_outcomes') }} o
+      JOIN {{ ref('int_interview_processes') }} p
+        ON o.process_id = p.process_id
+      JOIN {{ ref('int_job_positions') }} j
+        ON p.job_position_id = j.position_id
+      WHERE
+        o.offer_currency IS NOT NULL
+        AND j.currency IS NOT NULL
+        AND o.offer_currency != j.currency
+
+  # Test for processes stuck in applied status for too long
+  - name: test_stale_applied_processes
+    description: "Identify processes stuck in 'applied' status for >60 days with no interviews"
+    config:
+      severity: warn
+    test: >
+      SELECT
+        p.process_id,
+        p.company_name,
+        p.job_title,
+        p.application_date,
+        p.days_since_application,
+        'Process stuck in applied status for >60 days with no interviews' as issue
+      FROM {{ ref('int_interview_processes') }} p
+      LEFT JOIN {{ ref('int_interviews') }} i
+        ON p.process_id = i.process_id
+      LEFT JOIN {{ ref('int_interview_outcomes') }} o
+        ON p.process_id = o.process_id
+      WHERE
+        p.process_status = 'applied'
+        AND p.days_since_application > 60
+        AND i.interview_id IS NULL
+        AND o.outcome_id IS NULL
+      GROUP BY
+        p.process_id, p.company_name, p.job_title,
+        p.application_date, p.days_since_application

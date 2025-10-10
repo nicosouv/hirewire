@@ -1,0 +1,348 @@
+version: 2
+
+models:
+  - name: mart_interview_summary
+    description: "Comprehensive summary mart for interview processes with aggregated statistics"
+    config:
+      tags: ['mart', 'analytics']
+    data_tests:
+      # Ensure no duplicate process records
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - process_id
+    columns:
+      - name: process_id
+        description: "Primary key - interview process ID"
+        data_tests:
+          - unique
+          - not_null
+      - name: company_name
+        description: "Company name"
+        data_tests:
+          - not_null
+      - name: industry
+        description: "Industry sector"
+      - name: company_size
+        description: "Company size category"
+      - name: job_title
+        description: "Job position title"
+        data_tests:
+          - not_null
+      - name: job_level
+        description: "Job seniority level"
+      - name: department
+        description: "Department"
+      - name: remote_policy
+        description: "Remote work policy"
+      - name: application_date
+        description: "Date of application"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "<= current_date"
+      - name: process_status
+        description: "Current status of interview process"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['applied', 'screening', 'interviewing', 'tech_test', 'final_round', 'offer', 'rejected', 'accepted', 'ghosted', 'withdrew', 'reminder']
+      - name: application_source
+        description: "Source of the application"
+      - name: total_interviews
+        description: "Total number of interviews conducted"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: avg_interview_duration
+        description: "Average duration of interviews in minutes"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+              config:
+                where: "avg_interview_duration IS NOT NULL"
+      - name: avg_interview_rating
+        description: "Average interview rating (1-5)"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "BETWEEN 1 AND 5"
+              config:
+                where: "avg_interview_rating IS NOT NULL"
+      - name: interview_types
+        description: "Comma-separated list of interview types"
+      - name: first_interview_date
+        description: "Date of first interview"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= application_date"
+              config:
+                where: "first_interview_date IS NOT NULL AND application_date IS NOT NULL"
+      - name: last_interview_date
+        description: "Date of last interview"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= first_interview_date"
+              config:
+                where: "last_interview_date IS NOT NULL AND first_interview_date IS NOT NULL"
+      - name: outcome
+        description: "Final outcome of the process"
+        data_tests:
+          - accepted_values:
+              values: ['rejection', 'rejected', 'offer', 'accepted', 'ghosted', 'withdrew']
+              config:
+                where: "outcome IS NOT NULL"
+      - name: outcome_date
+        description: "Date outcome was received"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= application_date"
+              config:
+                where: "outcome_date IS NOT NULL AND application_date IS NOT NULL"
+          - dbt_utils.expression_is_true:
+              expression: "<= current_date"
+              config:
+                where: "outcome_date IS NOT NULL"
+      - name: offer_salary
+        description: "Salary offered (if applicable)"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+              config:
+                where: "offer_salary IS NOT NULL"
+      - name: overall_experience_rating
+        description: "Overall experience rating (1-5)"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "BETWEEN 1 AND 5"
+              config:
+                where: "overall_experience_rating IS NOT NULL"
+      - name: process_duration_days
+        description: "Duration of process in days (application to outcome)"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "process_duration_days IS NOT NULL"
+      - name: outcome_category
+        description: "Categorized outcome for analysis"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Success', 'Rejection', 'Ghosted', 'Withdrew', 'In Progress', 'Unknown']
+
+  - name: mart_active_applications
+    description: "Active applications mart with actionable insights and prioritization"
+    config:
+      tags: ['mart', 'operational']
+    data_tests:
+      # Ensure no duplicate process records
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - process_id
+    columns:
+      - name: process_id
+        description: "Primary key - interview process ID"
+        data_tests:
+          - unique
+          - not_null
+      - name: company_name
+        description: "Company name"
+        data_tests:
+          - not_null
+      - name: job_title
+        description: "Job title"
+        data_tests:
+          - not_null
+      - name: department
+        description: "Department"
+      - name: level
+        description: "Job level"
+      - name: employment_type
+        description: "Type of employment"
+      - name: remote_policy
+        description: "Remote work policy"
+      - name: salary_min
+        description: "Minimum salary"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "salary_min IS NOT NULL"
+      - name: salary_max
+        description: "Maximum salary"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= salary_min"
+              config:
+                where: "salary_max IS NOT NULL AND salary_min IS NOT NULL"
+      - name: currency
+        description: "Salary currency"
+      - name: industry
+        description: "Industry sector"
+      - name: company_size
+        description: "Company size"
+      - name: company_location
+        description: "Company location"
+      - name: application_date
+        description: "Date of application"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "<= current_date"
+      - name: current_status
+        description: "Current process status"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['applied', 'screening', 'interviewing', 'tech_test', 'final_round', 'offer', 'reminder']
+      - name: source
+        description: "Application source"
+      - name: days_since_application
+        description: "Days since application was submitted"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: last_interview_date
+        description: "Date of most recent interview (any status)"
+      - name: last_completed_interview_date
+        description: "Date of most recent completed interview"
+      - name: next_scheduled_interview_date
+        description: "Date of next scheduled interview"
+      - name: days_since_last_interview
+        description: "Days since last interview"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "days_since_last_interview IS NOT NULL"
+      - name: total_interviews
+        description: "Total number of interviews (all statuses)"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: completed_interviews
+        description: "Number of completed interviews"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+          - dbt_utils.expression_is_true:
+              expression: "<= total_interviews"
+      - name: scheduled_interviews
+        description: "Number of scheduled interviews"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: current_round
+        description: "Current interview round number"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: interview_types_completed
+        description: "Comma-separated list of completed interview types"
+      - name: interview_types_scheduled
+        description: "Comma-separated list of scheduled interview types"
+      - name: process_notes
+        description: "Process notes"
+      - name: created_at
+        description: "Record creation timestamp"
+        data_tests:
+          - not_null
+      - name: updated_at
+        description: "Record update timestamp"
+        data_tests:
+          - not_null
+      - name: status_category
+        description: "High-level status category"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Waiting for Response', 'In Screening', 'In Interview Process', 'Offer Stage', 'Other']
+      - name: priority_score
+        description: "Priority score for action (0-100)"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "BETWEEN 0 AND 100"
+      - name: next_action
+        description: "Recommended next action"
+        data_tests:
+          - not_null
+      - name: expected_next_step
+        description: "Expected next step in process"
+        data_tests:
+          - not_null
+      - name: suggested_follow_up_date
+        description: "Suggested date for follow-up"
+        data_tests:
+          - not_null
+
+  - name: mart_monthly_stats
+    description: "Monthly aggregated statistics for interview activity"
+    config:
+      tags: ['mart', 'analytics', 'time_series']
+    columns:
+      - name: month
+        description: "Month date"
+        data_tests:
+          - not_null
+      - name: applications_count
+        description: "Number of applications submitted"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: interviews_count
+        description: "Number of interviews conducted"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: offers_count
+        description: "Number of offers received"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: rejections_count
+        description: "Number of rejections received"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: accepted_count
+        description: "Number of offers accepted"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+  - name: mart_interview_analytics
+    description: "Deep analytics mart for interview performance and insights"
+    config:
+      tags: ['mart', 'analytics']
+    columns:
+      - name: company_name
+        description: "Company name"
+      - name: industry
+        description: "Industry sector"
+      - name: total_interviews
+        description: "Total number of interviews"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+  - name: mart_application_daily_stats
+    description: "Daily statistics for application tracking"
+    config:
+      tags: ['mart', 'analytics', 'time_series']
+    columns:
+      - name: day
+        description: "Application day"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "<= current_date"
+      - name: applications_count
+        description: "Number of applications on this date"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"

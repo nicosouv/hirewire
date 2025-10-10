@@ -1,0 +1,303 @@
+version: 2
+
+models:
+  - name: int_companies
+    description: "Intermediate layer for companies with data quality checks and standardization"
+    columns:
+      - name: company_id
+        description: "Primary key for companies"
+        data_tests:
+          - unique
+          - not_null
+      - name: company_name
+        description: "Standardized company name (trimmed)"
+        data_tests:
+          - not_null
+      - name: industry
+        description: "Industry sector (defaults to 'Unknown' if missing)"
+        data_tests:
+          - not_null
+      - name: company_size
+        description: "Company size category (defaults to 'Unknown' if missing)"
+        data_tests:
+          - not_null
+      - name: location
+        description: "Company location (defaults to 'Unknown' if missing)"
+        data_tests:
+          - not_null
+      - name: website
+        description: "Company website URL"
+      - name: created_at
+        description: "Record creation timestamp"
+        data_tests:
+          - not_null
+      - name: updated_at
+        description: "Record last update timestamp"
+        data_tests:
+          - not_null
+
+  - name: int_job_positions
+    description: "Intermediate layer for job positions with enrichments and calculated fields"
+    columns:
+      - name: position_id
+        description: "Primary key for job positions"
+        data_tests:
+          - unique
+          - not_null
+      - name: company_id
+        description: "Foreign key to companies"
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('int_companies')
+              field: company_id
+      - name: company_name
+        description: "Denormalized company name for easy access"
+      - name: job_title
+        description: "Job title (trimmed)"
+        data_tests:
+          - not_null
+      - name: department
+        description: "Department (defaults to 'Unknown')"
+        data_tests:
+          - not_null
+      - name: job_level
+        description: "Job level (defaults to 'Unknown')"
+        data_tests:
+          - not_null
+      - name: employment_type
+        description: "Employment type (defaults to 'Unknown')"
+        data_tests:
+          - not_null
+      - name: remote_policy
+        description: "Remote policy (defaults to 'Unknown')"
+        data_tests:
+          - not_null
+      - name: salary_min
+        description: "Minimum salary"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "salary_min IS NOT NULL"
+      - name: salary_max
+        description: "Maximum salary"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "salary_max IS NOT NULL"
+          - dbt_utils.expression_is_true:
+              expression: ">= salary_min"
+              config:
+                where: "salary_max IS NOT NULL AND salary_min IS NOT NULL"
+      - name: currency
+        description: "Salary currency (defaults to 'EUR')"
+        data_tests:
+          - not_null
+      - name: avg_salary
+        description: "Calculated average of min and max salary"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "avg_salary IS NOT NULL"
+
+  - name: int_interview_processes
+    description: "Intermediate layer for interview processes with enrichments and business logic"
+    columns:
+      - name: process_id
+        description: "Primary key for interview processes"
+        data_tests:
+          - unique
+          - not_null
+      - name: job_position_id
+        description: "Foreign key to job positions"
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('int_job_positions')
+              field: position_id
+      - name: company_id
+        description: "Denormalized company ID"
+        data_tests:
+          - not_null
+      - name: company_name
+        description: "Denormalized company name"
+      - name: job_title
+        description: "Denormalized job title"
+      - name: application_date
+        description: "Date application was submitted"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "<= current_date"
+      - name: process_status
+        description: "Standardized process status (lowercased, trimmed)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['applied', 'screening', 'interviewing', 'tech_test', 'final_round', 'offer', 'rejected', 'accepted', 'ghosted', 'withdrew', 'reminder', 'failed', 'withdrawn']
+      - name: application_source
+        description: "Standardized application source (lowercased, trimmed)"
+      - name: days_since_application
+        description: "Number of days since application was submitted"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: status_category
+        description: "High-level status category"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Success', 'Rejected', 'In Progress', 'Withdrawn', 'Other']
+      - name: source_category
+        description: "High-level source category"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['LinkedIn', 'Indeed', 'Company Website', 'Referral', 'Recruiter', 'Other']
+
+  - name: int_interviews
+    description: "Intermediate layer for interviews with enrichments and categorizations"
+    columns:
+      - name: interview_id
+        description: "Primary key for interviews"
+        data_tests:
+          - unique
+          - not_null
+      - name: process_id
+        description: "Foreign key to interview processes"
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('int_interview_processes')
+              field: process_id
+      - name: interview_type
+        description: "Standardized interview type (trimmed)"
+        data_tests:
+          - not_null
+      - name: interview_round
+        description: "Interview round number"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: scheduled_date
+        description: "Originally scheduled date"
+      - name: actual_date
+        description: "Actual date interview occurred"
+      - name: duration_minutes
+        description: "Interview duration in minutes"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+              config:
+                where: "duration_minutes IS NOT NULL"
+      - name: interview_status
+        description: "Standardized interview status (lowercased, trimmed)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['scheduled', 'completed', 'cancelled', 'rescheduled', 'no_show']
+      - name: rating
+        description: "Interview rating (1-5)"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "BETWEEN 1 AND 5"
+              config:
+                where: "rating IS NOT NULL"
+      - name: reschedule_days
+        description: "Days between scheduled and actual date"
+      - name: interview_category
+        description: "High-level interview category"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Technical', 'Behavioral', 'HR', 'Manager', 'Cultural', 'Other']
+      - name: duration_category
+        description: "Categorized duration bucket"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Short (≤30min)', 'Standard (30-60min)', 'Long (60-90min)', 'Extended (>90min)', 'Unknown']
+      - name: rating_category
+        description: "Categorized rating bucket"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Excellent', 'Good', 'Average', 'Poor', 'Not Rated']
+
+  - name: int_interview_outcomes
+    description: "Intermediate layer for interview outcomes with enrichments and derived metrics"
+    columns:
+      - name: outcome_id
+        description: "Primary key for outcomes"
+        data_tests:
+          - unique
+          - not_null
+      - name: process_id
+        description: "Foreign key to interview processes"
+        data_tests:
+          - not_null
+          - unique  # One outcome per process
+          - relationships:
+              to: ref('int_interview_processes')
+              field: process_id
+      - name: outcome
+        description: "Standardized outcome (lowercased, trimmed)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['rejection', 'rejected', 'offer', 'accepted', 'hired', 'ghosted', 'no_response', 'withdrew', 'withdrawn', 'rejected_by_company', 'rejected_by_candidate', 'failed']
+      - name: outcome_date
+        description: "Date outcome was received"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "<= current_date"
+      - name: offer_salary
+        description: "Offered salary amount"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+              config:
+                where: "offer_salary IS NOT NULL"
+      - name: offer_currency
+        description: "Offer currency (defaults to 'EUR')"
+        data_tests:
+          - not_null:
+              config:
+                where: "offer_salary IS NOT NULL"
+      - name: overall_experience_rating
+        description: "Overall experience rating (1-5)"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "BETWEEN 1 AND 5"
+              config:
+                where: "overall_experience_rating IS NOT NULL"
+      - name: process_duration_days
+        description: "Total process duration in days"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "process_duration_days IS NOT NULL"
+      - name: outcome_category
+        description: "High-level outcome category"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Success', 'Rejected', 'Withdrawn', 'Ghosted', 'Other']
+      - name: experience_category
+        description: "Categorized experience rating"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Excellent Experience', 'Good Experience', 'Average Experience', 'Poor Experience', 'Not Rated']
+      - name: process_speed_category
+        description: "Categorized process duration"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Very Fast (≤1 week)', 'Fast (1-2 weeks)', 'Normal (2-4 weeks)', 'Slow (1-2 months)', 'Very Slow (>2 months)', 'Unknown']

@@ -1,0 +1,102 @@
+version: 2
+
+# Cross-model relationship tests to ensure data integrity across the pipeline
+# These tests validate that foreign keys and joins are maintained correctly
+
+tests:
+  # Test that all processes in mart_interview_summary exist in intermediate layer
+  - name: test_mart_interview_summary_processes_exist_in_intermediate
+    description: "Ensure all process_ids in mart_interview_summary exist in int_interview_processes"
+    config:
+      severity: error
+    test: >
+      SELECT
+        m.process_id
+      FROM {{ ref('mart_interview_summary') }} m
+      LEFT JOIN {{ ref('int_interview_processes') }} i
+        ON m.process_id = i.process_id
+      WHERE i.process_id IS NULL
+
+  # Test that all active applications exist in intermediate processes
+  - name: test_mart_active_applications_processes_exist
+    description: "Ensure all process_ids in mart_active_applications exist in int_interview_processes"
+    config:
+      severity: error
+    test: >
+      SELECT
+        m.process_id
+      FROM {{ ref('mart_active_applications') }} m
+      LEFT JOIN {{ ref('int_interview_processes') }} i
+        ON m.process_id = i.process_id
+      WHERE i.process_id IS NULL
+
+  # Test that company names match across layers
+  - name: test_company_names_consistency_staging_to_intermediate
+    description: "Ensure company names are consistent between staging and intermediate"
+    config:
+      severity: warn
+    test: >
+      SELECT
+        s.id as staging_id,
+        s.name as staging_name,
+        i.company_name as intermediate_name
+      FROM {{ ref('stg_companies') }} s
+      JOIN {{ ref('int_companies') }} i
+        ON s.id = i.company_id
+      WHERE TRIM(s.name) != TRIM(i.company_name)
+
+  # Test that all interviews reference valid processes
+  - name: test_interviews_reference_valid_processes
+    description: "Ensure all interviews in intermediate layer reference existing processes"
+    config:
+      severity: error
+    test: >
+      SELECT
+        i.interview_id,
+        i.process_id
+      FROM {{ ref('int_interviews') }} i
+      LEFT JOIN {{ ref('int_interview_processes') }} p
+        ON i.process_id = p.process_id
+      WHERE p.process_id IS NULL
+
+  # Test that all outcomes reference valid processes
+  - name: test_outcomes_reference_valid_processes
+    description: "Ensure all outcomes reference existing processes"
+    config:
+      severity: error
+    test: >
+      SELECT
+        o.outcome_id,
+        o.process_id
+      FROM {{ ref('int_interview_outcomes') }} o
+      LEFT JOIN {{ ref('int_interview_processes') }} p
+        ON o.process_id = p.process_id
+      WHERE p.process_id IS NULL
+
+  # Test that job positions referenced by processes exist
+  - name: test_processes_reference_valid_positions
+    description: "Ensure all processes reference existing job positions"
+    config:
+      severity: error
+    test: >
+      SELECT
+        p.process_id,
+        p.job_position_id
+      FROM {{ ref('int_interview_processes') }} p
+      LEFT JOIN {{ ref('int_job_positions') }} j
+        ON p.job_position_id = j.position_id
+      WHERE j.position_id IS NULL
+
+  # Test that job positions reference valid companies
+  - name: test_positions_reference_valid_companies
+    description: "Ensure all job positions reference existing companies"
+    config:
+      severity: error
+    test: >
+      SELECT
+        j.position_id,
+        j.company_id
+      FROM {{ ref('int_job_positions') }} j
+      LEFT JOIN {{ ref('int_companies') }} c
+        ON j.company_id = c.company_id
+      WHERE c.company_id IS NULL

@@ -1,0 +1,263 @@
+version: 2
+
+models:
+  - name: stg_companies
+    description: "Staging layer for company data extracted from PostgreSQL"
+    columns:
+      - name: id
+        description: "Primary key for companies"
+        data_tests:
+          - unique
+          - not_null
+      - name: name
+        description: "Company name"
+        data_tests:
+          - not_null
+      - name: industry
+        description: "Industry sector"
+      - name: size
+        description: "Company size (number of employees or category)"
+        # Note: Mixed data type - VARCHAR field contains both numbers and text
+      - name: location
+        description: "Company headquarters location"
+      - name: website
+        description: "Company website URL"
+      - name: created_at
+        description: "Record creation timestamp"
+        data_tests:
+          - not_null
+      - name: updated_at
+        description: "Record last update timestamp"
+        data_tests:
+          - not_null
+
+  - name: stg_job_positions
+    description: "Staging layer for job position data extracted from PostgreSQL"
+    columns:
+      - name: id
+        description: "Primary key for job positions"
+        data_tests:
+          - unique
+          - not_null
+      - name: company_id
+        description: "Foreign key to companies"
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_companies')
+              field: id
+      - name: title
+        description: "Job position title"
+        data_tests:
+          - not_null
+      - name: department
+        description: "Department within the company"
+      - name: level
+        description: "Seniority level"
+        # Note: Accept any value, data may have variations
+      - name: employment_type
+        description: "Type of employment"
+        data_tests:
+          - accepted_values:
+              values: ['full-time', 'part-time', 'contract', 'temporary', 'internship']
+      - name: remote_policy
+        description: "Remote work policy"
+        data_tests:
+          - accepted_values:
+              values: ['remote', 'hybrid', 'onsite']
+      - name: salary_min
+        description: "Minimum salary range"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: salary_max
+        description: "Maximum salary range"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: currency
+        description: "Salary currency code"
+        data_tests:
+          - accepted_values:
+              values: ['USD', 'EUR', 'GBP', 'CAD', 'CHF']
+      - name: created_at
+        description: "Record creation timestamp"
+        data_tests:
+          - not_null
+      - name: updated_at
+        description: "Record last update timestamp"
+        data_tests:
+          - not_null
+
+  - name: stg_interview_processes
+    description: "Staging layer for interview process data extracted from PostgreSQL"
+    columns:
+      - name: id
+        description: "Primary key for interview processes"
+        data_tests:
+          - unique
+          - not_null
+      - name: job_position_id
+        description: "Foreign key to job positions"
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_job_positions')
+              field: id
+      - name: application_date
+        description: "Date when application was submitted"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "<= current_date"
+              config:
+                where: "application_date IS NOT NULL"
+      - name: status
+        description: "Current status of the interview process"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['applied', 'screening', 'interviewing', 'tech_test', 'final_round', 'offer', 'rejected', 'accepted', 'ghosted', 'withdrew', 'reminder']
+      - name: source
+        description: "Source where the job was found"
+      - name: notes
+        description: "Additional notes about the process"
+      - name: created_at
+        description: "Record creation timestamp"
+        data_tests:
+          - not_null
+      - name: updated_at
+        description: "Record last update timestamp"
+        data_tests:
+          - not_null
+
+  - name: stg_interviews
+    description: "Staging layer for individual interview data extracted from PostgreSQL"
+    columns:
+      - name: id
+        description: "Primary key for interviews"
+        data_tests:
+          - unique
+          - not_null
+      - name: process_id
+        description: "Foreign key to interview processes"
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_interview_processes')
+              field: id
+      - name: interview_type
+        description: "Type of interview"
+        # Note: Accept any value - simplified types in actual data
+      - name: interview_round
+        description: "Interview round number"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: scheduled_date
+        description: "Date interview was scheduled for"
+      - name: actual_date
+        description: "Date interview actually occurred"
+      - name: duration_minutes
+        description: "Duration of interview in minutes"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+              config:
+                where: "duration_minutes IS NOT NULL"
+      - name: interviewer_name
+        description: "Name of the interviewer"
+      - name: interviewer_role
+        description: "Role/title of the interviewer"
+      - name: status
+        description: "Status of the interview"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['scheduled', 'completed', 'cancelled', 'rescheduled', 'no_show']
+      - name: feedback
+        description: "Feedback notes from the interview"
+      - name: rating
+        description: "Interview rating (1-5)"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "BETWEEN 1 AND 5"
+              config:
+                where: "rating IS NOT NULL"
+      - name: technical_topics
+        description: "Technical topics covered in the interview"
+      - name: created_at
+        description: "Record creation timestamp"
+        data_tests:
+          - not_null
+      - name: updated_at
+        description: "Record last update timestamp"
+        data_tests:
+          - not_null
+
+  - name: stg_interview_outcomes
+    description: "Staging layer for interview outcome data extracted from PostgreSQL"
+    columns:
+      - name: id
+        description: "Primary key for outcomes"
+        data_tests:
+          - unique
+          - not_null
+      - name: process_id
+        description: "Foreign key to interview processes"
+        data_tests:
+          - not_null
+          - unique  # One outcome per process
+          - relationships:
+              to: ref('stg_interview_processes')
+              field: id
+      - name: outcome
+        description: "Final outcome of the interview process"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['rejection', 'rejected', 'offer', 'accepted', 'ghosted', 'withdrew']
+      - name: outcome_date
+        description: "Date the outcome was received"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "<= current_date"
+      - name: offer_salary
+        description: "Offered salary amount"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+              config:
+                where: "offer_salary IS NOT NULL"
+      - name: offer_currency
+        description: "Currency of the offer"
+        data_tests:
+          - accepted_values:
+              values: ['USD', 'EUR', 'GBP', 'CAD', 'CHF']
+              config:
+                where: "offer_currency IS NOT NULL"
+      - name: rejection_reason
+        description: "Reason provided for rejection"
+      - name: feedback_received
+        description: "Whether detailed feedback was received"
+      - name: would_reapply
+        description: "Whether candidate would reapply in the future"
+      - name: overall_experience_rating
+        description: "Overall experience rating (1-5)"
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "BETWEEN 1 AND 5"
+              config:
+                where: "overall_experience_rating IS NOT NULL"
+      - name: notes
+        description: "Additional notes about the outcome"
+      - name: created_at
+        description: "Record creation timestamp"
+        data_tests:
+          - not_null
+      - name: updated_at
+        description: "Record last update timestamp"
+        data_tests:
+          - not_null
