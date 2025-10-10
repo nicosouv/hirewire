@@ -76,7 +76,7 @@ export default function Positions() {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
+          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
         >
           <Plus className="w-5 h-5" />
           {showForm ? 'Cancel' : 'Add Position'}
@@ -210,7 +210,7 @@ export default function Positions() {
               <button
                 type="submit"
                 disabled={createPosition.isPending}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02]"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 font-semibold rounded-xl shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02]"
               >
                 {createPosition.isPending ? (
                   <>
@@ -227,7 +227,7 @@ export default function Positions() {
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-6 py-3 border-2 border-navy-900 text-navy-900 font-semibold rounded-xl hover:bg-navy-900 hover:text-white transition-all"
+                className="px-6 py-3 border-2 border-navy-900 text-navy-900 font-semibold rounded-xl hover:bg-navy-900 transition-all"
               >
                 Cancel
               </button>
@@ -258,7 +258,7 @@ export default function Positions() {
           <p className="text-anthracite/60 mb-6">Start tracking job positions you're interested in</p>
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
           >
             <Plus className="w-5 h-5" />
             Add Your First Position

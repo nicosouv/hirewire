@@ -84,7 +84,7 @@ export default function Processes() {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
+          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
         >
           <Plus className="w-5 h-5" />
           {showForm ? 'Cancel' : 'Add Process'}
@@ -184,7 +184,7 @@ export default function Processes() {
               <button
                 type="submit"
                 disabled={createProcess.isPending}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02]"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 font-semibold rounded-xl shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02]"
               >
                 {createProcess.isPending ? (
                   <>
@@ -201,7 +201,7 @@ export default function Processes() {
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-6 py-3 border-2 border-navy-900 text-navy-900 font-semibold rounded-xl hover:bg-navy-900 hover:text-white transition-all"
+                className="px-6 py-3 border-2 border-navy-900 text-navy-900 font-semibold rounded-xl hover:bg-navy-900 transition-all"
               >
                 Cancel
               </button>
@@ -232,7 +232,7 @@ export default function Processes() {
           <p className="text-anthracite/60 mb-6">Start tracking your first application</p>
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
           >
             <Plus className="w-5 h-5" />
             Start Your First Process
@@ -263,7 +263,7 @@ function ProcessCard({ process, positions, companies, onDelete }: ProcessCardPro
           {/* Header */}
           <div className="flex items-start gap-3 mb-4">
             <div className="w-12 h-12 bg-gradient-to-br from-honey-400 to-honey-500 rounded-xl flex items-center justify-center flex-shrink-0">
-              <GitBranch className="w-6 h-6 text-white" />
+              <GitBranch className="w-6 h-6" />
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-display font-semibold text-navy-900 group-hover:text-honey-600 transition-colors flex items-center gap-2">

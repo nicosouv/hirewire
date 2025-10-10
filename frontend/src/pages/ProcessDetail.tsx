@@ -121,7 +121,7 @@ export default function ProcessDetail() {
             {/* Company logo/icon */}
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 bg-gradient-to-br from-honey-400 to-honey-500 rounded-2xl flex items-center justify-center shadow-md">
-                <Building2 className="w-8 h-8 text-white" />
+                <Building2 className="w-8 h-8" />
               </div>
               <div>
                 <Link
@@ -243,7 +243,7 @@ export default function ProcessDetail() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <div className="flex items-center gap-3 mb-2">
-                          <span className="px-3 py-1 bg-honey-500 text-white text-sm font-bold rounded-lg">
+                          <span className="px-3 py-1 bg-honey-500 text-sm font-bold rounded-lg">
                             Round {interview.interview_round}
                           </span>
                           {interview.interview_type && (
@@ -336,7 +336,7 @@ export default function ProcessDetail() {
             <p className="text-anthracite/60 mb-6">This process doesn't have any interview rounds scheduled.</p>
             <Link
               to="/interviews"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 font-semibold rounded-xl shadow-md hover:shadow-lg transition-all"
             >
               <Calendar className="w-5 h-5" />
               Schedule Interview
@@ -351,14 +351,14 @@ export default function ProcessDetail() {
         <div className="flex flex-wrap gap-3">
           <Link
             to="/interviews"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-honey-500 hover:bg-honey-600 text-white font-semibold rounded-xl transition-all"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-honey-500 hover:bg-honey-600 font-semibold rounded-xl transition-all"
           >
             <Calendar className="w-4 h-4" />
             Add Interview
           </Link>
           <Link
             to="/processes"
-            className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-navy-900 text-navy-900 hover:bg-navy-900 hover:text-white font-semibold rounded-xl transition-all"
+            className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-navy-900 text-navy-900 hover:bg-navy-900 font-semibold rounded-xl transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
             All Processes

@@ -239,7 +239,7 @@ function StatCard({ title, value, icon, color }: StatCardProps) {
           <p className="text-sm text-anthracite/60 font-medium">{title}</p>
           <p className="text-3xl font-display font-bold text-navy-900 mt-2">{value}</p>
         </div>
-        <div className={`p-3 rounded-xl bg-gradient-to-br ${colorClasses[color]} text-white shadow-md group-hover:scale-110 transition-transform`}>
+        <div className={`p-3 rounded-xl bg-gradient-to-br ${colorClasses[color]} shadow-md group-hover:scale-110 transition-transform`}>
           {icon}
         </div>
       </div>

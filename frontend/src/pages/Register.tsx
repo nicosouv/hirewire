@@ -207,7 +207,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-honey-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 font-semibold rounded-xl shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-honey-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98]"
             >
               {isLoading ? (
                 <>
@@ -238,7 +238,7 @@ export default function Register() {
           {/* Login link */}
           <Link
             to="/login"
-            className="w-full flex justify-center py-3 px-4 border-2 border-navy-900 rounded-xl text-navy-900 font-semibold hover:bg-navy-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-navy-900 focus:ring-offset-2 transition-all"
+            className="w-full flex justify-center py-3 px-4 border-2 border-navy-900 rounded-xl text-navy-900 font-semibold hover:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-900 focus:ring-offset-2 transition-all"
           >
             Sign in instead
           </Link>
