@@ -1,4 +1,6 @@
-# HireWire - Interview Analytics Platform
+![HireWire](https://github.com/nicosouv/hirewire/blob/main/frontend/public/logo.png?raw=true)
+
+# Interview Analytics Platform
 
 A modern data analytics platform to track and analyze my job interview processes. Built with PostgreSQL for transactional data, DBT for transformations, DuckDB for analytics, and Apache Superset for dashboards.
 
