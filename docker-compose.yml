@@ -49,12 +49,50 @@ services:
       - ./dbt_project:/usr/app
       - ./profiles:/root/.dbt
       - ./data:/data
+      - duckdb_data:/data
     networks:
       - hirewire_network
     depends_on:
       - postgres
     entrypoint: ["/bin/sh", "-c"]
     command: ["while true; do sleep 30; done"]
+
+  # FastAPI Backend
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: hirewire_api
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/app:/app/app
+    networks:
+      - hirewire_network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: hirewire_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - hirewire_network
+    depends_on:
+      - api
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine

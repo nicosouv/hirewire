@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # Production PostgreSQL
+  postgres:
+    image: postgres:17-alpine
+    container_name: hirewire_postgres_prod
+    environment:
+      POSTGRES_DB: hirewire
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Europe/Paris
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./sql/postgres:/docker-entrypoint-initdb.d
+    networks:
+      - hirewire_network_prod
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Production FastAPI Backend
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hirewire_api_prod
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/hirewire
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=False
+      - BACKEND_CORS_ORIGINS=["https://yourdomain.com"]
+    networks:
+      - hirewire_network_prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Production React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hirewire_frontend_prod
+    networks:
+      - hirewire_network_prod
+    depends_on:
+      - api
+    restart: always
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: hirewire_nginx_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+    networks:
+      - hirewire_network_prod
+    depends_on:
+      - api
+      - frontend
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # DBT (for scheduled runs)
+  dbt:
+    build:
+      context: .
+      dockerfile: .infra/docker/dbt.Dockerfile
+    container_name: hirewire_dbt_prod
+    platform: linux/amd64
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./dbt_project:/usr/app
+      - ./profiles:/root/.dbt
+      - duckdb_data_prod:/data
+    networks:
+      - hirewire_network_prod
+    depends_on:
+      - postgres
+    profiles:
+      - dbt
+
+volumes:
+  postgres_data_prod:
+  duckdb_data_prod:
+  nginx_cache:
+
+networks:
+  hirewire_network_prod:
+    driver: bridge
