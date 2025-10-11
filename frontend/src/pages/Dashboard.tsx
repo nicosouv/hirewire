@@ -5,7 +5,7 @@ import { useCompanies } from '../hooks/useCompanies';
 import { usePositions } from '../hooks/usePositions';
 import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
-import { TrendingUp, Briefcase, Calendar, Award, BarChart3, Building2, ArrowRight } from 'lucide-react';
+import { TrendingUp, Briefcase, Calendar, Award, ArrowRight } from 'lucide-react';
 
 export default function Dashboard() {
   const { data: dashboard, isLoading, error } = useDashboard();

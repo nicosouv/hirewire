@@ -13,6 +13,7 @@ class UserBase(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=100)
     is_active: bool = True
     is_superuser: bool = False
+    is_airflow_admin: bool = False
 
 
 class UserCreate(UserBase):
@@ -28,6 +29,7 @@ class UserUpdate(BaseModel):
     password: Optional[str] = Field(None, min_length=8, max_length=100)
     is_active: Optional[bool] = None
     is_superuser: Optional[bool] = None
+    is_airflow_admin: Optional[bool] = None
 
 
 class UserResponse(UserBase):
@@ -57,3 +59,4 @@ class TokenData(BaseModel):
     """Schema for token payload data."""
     user_id: Optional[int] = None
     email: Optional[str] = None
+    is_airflow_admin: Optional[bool] = False

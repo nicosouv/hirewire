@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { processApi, positionApi, companyApi, interviewApi } from '../services/api';
+import { processApi, positionApi, companyApi } from '../services/api';
 import { useInterviews } from '../hooks/useInterviews';
 import Loading from '../components/Loading';
 import {
@@ -19,7 +19,7 @@ import {
   AlertCircle,
   FileText
 } from 'lucide-react';
-import type { Process, Position, Company, Interview } from '../types';
+import type { Process, Position, Company } from '../types';
 
 const STATUS_CONFIG = {
   applied: { label: 'Applied', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: FileText },
@@ -227,7 +227,7 @@ export default function ProcessDetail() {
 
         {sortedInterviews.length > 0 ? (
           <div className="space-y-6">
-            {sortedInterviews.map((interview, index) => {
+            {sortedInterviews.map((interview) => {
               const interviewStatus = INTERVIEW_STATUS_CONFIG[interview.status] || INTERVIEW_STATUS_CONFIG.scheduled;
               const InterviewStatusIcon = interviewStatus.icon;
 

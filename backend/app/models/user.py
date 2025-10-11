@@ -19,6 +19,7 @@ class User(Base):
     last_name = Column(String(100), nullable=False)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
+    is_airflow_admin = Column(Boolean, default=False)  # Only these users can access Airflow
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

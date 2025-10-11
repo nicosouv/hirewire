@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Mail, Lock, User, Sparkles } from 'lucide-react';
+import { UserPlus, Mail, Lock, User } from 'lucide-react';
 
 export default function Register() {
   const navigate = useNavigate();

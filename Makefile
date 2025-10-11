@@ -100,6 +100,68 @@ dbt-docs: ## Generate and serve DBT docs
 	docker-compose exec dbt dbt docs generate
 	docker-compose exec dbt dbt docs serve --port 8080
 
+# Airflow
+airflow-init: ## Initialize Airflow (first time setup)
+	docker-compose --profile airflow up airflow-init
+	@echo ""
+	@echo "✅ Airflow initialized!"
+	@echo "   Run 'make airflow-start' to start Airflow services"
+
+airflow-start: ## Start Airflow services (webserver, scheduler, worker)
+	docker-compose --profile airflow up -d airflow-webserver airflow-scheduler airflow-worker airflow-postgres redis
+	@echo ""
+	@echo "✅ Airflow started!"
+	@echo "   Airflow UI: http://localhost:8080"
+	@echo "   Default credentials: admin/admin"
+	@echo ""
+	@echo "Run 'make airflow-logs' to see logs"
+
+airflow-stop: ## Stop Airflow services
+	docker-compose --profile airflow stop airflow-webserver airflow-scheduler airflow-worker airflow-postgres
+	@echo "✅ Airflow stopped"
+
+airflow-restart: ## Restart Airflow services
+	docker-compose --profile airflow restart airflow-webserver airflow-scheduler airflow-worker
+	@echo "✅ Airflow restarted"
+
+airflow-shell: ## Access Airflow webserver shell
+	docker-compose exec airflow-webserver bash
+
+airflow-logs: ## Show Airflow logs
+	docker-compose logs -f airflow-webserver airflow-scheduler airflow-worker
+
+airflow-logs-scheduler: ## Show Airflow scheduler logs
+	docker-compose logs -f airflow-scheduler
+
+airflow-logs-worker: ## Show Airflow worker logs
+	docker-compose logs -f airflow-worker
+
+airflow-trigger-etl: ## Trigger daily ETL pipeline DAG manually
+	docker-compose exec airflow-webserver airflow dags trigger daily_etl_pipeline
+	@echo "✅ Daily ETL pipeline triggered"
+
+airflow-trigger-sync: ## Trigger hourly status sync DAG manually
+	docker-compose exec airflow-webserver airflow dags trigger hourly_status_sync
+	@echo "✅ Hourly status sync triggered"
+
+airflow-list-dags: ## List all Airflow DAGs
+	docker-compose exec airflow-webserver airflow dags list
+
+airflow-unpause-all: ## Unpause all DAGs
+	docker-compose exec airflow-webserver airflow dags unpause daily_etl_pipeline
+	docker-compose exec airflow-webserver airflow dags unpause hourly_status_sync
+	@echo "✅ All DAGs unpaused"
+
+airflow-pause-all: ## Pause all DAGs
+	docker-compose exec airflow-webserver airflow dags pause daily_etl_pipeline
+	docker-compose exec airflow-webserver airflow dags pause hourly_status_sync
+	@echo "✅ All DAGs paused"
+
+airflow-reset: ## Reset Airflow (clean database and re-init)
+	docker-compose --profile airflow down -v
+	@echo "⚠️  Airflow volumes removed"
+	@echo "Run 'make airflow-init' to re-initialize"
+
 # Combined workflows
 setup: ## Initial setup (build + migrate + seed)
 	@echo "🚀 Setting up HireWire..."

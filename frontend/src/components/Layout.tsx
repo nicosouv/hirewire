@@ -8,8 +8,7 @@ import {
   GitBranch,
   Calendar,
   LogOut,
-  User,
-  Sparkles
+  User
 } from 'lucide-react';
 
 const PRO_TIPS = [

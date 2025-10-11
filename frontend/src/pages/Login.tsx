@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, Mail, Lock, Sparkles } from 'lucide-react';
+import { LogIn, Mail, Lock } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();

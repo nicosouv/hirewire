@@ -51,6 +51,7 @@ def decode_access_token(token: str) -> TokenData:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id_str: str = payload.get("sub")
         email: str = payload.get("email")
+        is_airflow_admin: bool = payload.get("is_airflow_admin", False)
 
         if user_id_str is None:
             raise HTTPException(
@@ -59,7 +60,7 @@ def decode_access_token(token: str) -> TokenData:
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        return TokenData(user_id=int(user_id_str), email=email)
+        return TokenData(user_id=int(user_id_str), email=email, is_airflow_admin=is_airflow_admin)
     except JWTError as e:
         print(f"JWT Error: {e}")  # Debug
         raise HTTPException(

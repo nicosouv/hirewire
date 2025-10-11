@@ -38,7 +38,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         first_name=user.first_name,
         last_name=user.last_name,
         is_active=user.is_active,
-        is_superuser=user.is_superuser
+        is_superuser=user.is_superuser,
+        is_airflow_admin=user.is_airflow_admin
     )
     db.add(db_user)
     db.commit()
@@ -63,7 +64,11 @@ def login(
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(user.id), "email": user.email},
+        data={
+            "sub": str(user.id),
+            "email": user.email,
+            "is_airflow_admin": user.is_airflow_admin
+        },
         expires_delta=access_token_expires
     )
 
@@ -83,17 +88,42 @@ def login_json(credentials: UserLogin, db: Session = Depends(get_db)):
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(user.id), "email": user.email},
+        data={
+            "sub": str(user.id),
+            "email": user.email,
+            "is_airflow_admin": user.is_airflow_admin
+        },
         expires_delta=access_token_expires
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me")
 def get_current_user_info(current_user: User = Depends(get_current_user)):
-    """Get current user information."""
-    return current_user
+    """Get current user information with custom headers for Nginx auth."""
+    from fastapi.responses import JSONResponse
+
+    # Return JSON with custom headers for Nginx auth_request
+    response = JSONResponse(
+        content={
+            "id": current_user.id,
+            "email": current_user.email,
+            "first_name": current_user.first_name,
+            "last_name": current_user.last_name,
+            "is_active": current_user.is_active,
+            "is_superuser": current_user.is_superuser,
+            "is_airflow_admin": current_user.is_airflow_admin,
+            "created_at": current_user.created_at.isoformat(),
+            "updated_at": current_user.updated_at.isoformat(),
+            "full_name": current_user.full_name
+        }
+    )
+    response.headers["X-User-Email"] = current_user.email
+    response.headers["X-Is-Airflow-Admin"] = "true" if current_user.is_airflow_admin else "false"
+    response.headers["X-User-ID"] = str(current_user.id)
+
+    return response
 
 
 @router.post("/test-token", response_model=UserResponse)
