@@ -45,14 +45,15 @@ with DAG(
     dbt_deps = DockerOperator(
         task_id='dbt_deps',
         image='hirewire-dbt:latest',
-        container_name='dbt_deps_{{ ts_nodash }}',
         api_version='auto',
         auto_remove='success',
         command='dbt deps',
         docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_network',
+        network_mode='hirewire_hirewire_network',
         mounts=[
             Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
+            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
+            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
         ],
         mount_tmp_dir=False,
         environment={
@@ -66,14 +67,15 @@ with DAG(
     dbt_run_staging = DockerOperator(
         task_id='dbt_run_staging',
         image='hirewire-dbt:latest',
-        container_name='dbt_stg_{{ ts_nodash }}',
         api_version='auto',
         auto_remove='success',
         command='dbt run --models staging --target duckdb',
         docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_network',
+        network_mode='hirewire_hirewire_network',
         mounts=[
             Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
+            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
+            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
         ],
         mount_tmp_dir=False,
         environment={
@@ -87,14 +89,15 @@ with DAG(
     dbt_run_intermediate = DockerOperator(
         task_id='dbt_run_intermediate',
         image='hirewire-dbt:latest',
-        container_name='dbt_int_{{ ts_nodash }}',
         api_version='auto',
         auto_remove='success',
         command='dbt run --models intermediate --target duckdb',
         docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_network',
+        network_mode='hirewire_hirewire_network',
         mounts=[
             Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
+            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
+            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
         ],
         mount_tmp_dir=False,
         environment={
@@ -108,14 +111,15 @@ with DAG(
     dbt_run_marts = DockerOperator(
         task_id='dbt_run_marts',
         image='hirewire-dbt:latest',
-        container_name='dbt_marts_{{ ts_nodash }}',
         api_version='auto',
         auto_remove='success',
         command='dbt run --models marts --target duckdb',
         docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_network',
+        network_mode='hirewire_hirewire_network',
         mounts=[
             Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
+            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
+            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
         ],
         mount_tmp_dir=False,
         environment={
@@ -129,14 +133,15 @@ with DAG(
     dbt_test = DockerOperator(
         task_id='dbt_test',
         image='hirewire-dbt:latest',
-        container_name='dbt_test_{{ ts_nodash }}',
         api_version='auto',
         auto_remove='success',
         command='dbt test --target duckdb',
         docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_network',
+        network_mode='hirewire_hirewire_network',
         mounts=[
             Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
+            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
+            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
         ],
         mount_tmp_dir=False,
         environment={
@@ -151,14 +156,15 @@ with DAG(
     dbt_docs = DockerOperator(
         task_id='dbt_docs_generate',
         image='hirewire-dbt:latest',
-        container_name='dbt_docs_{{ ts_nodash }}',
         api_version='auto',
         auto_remove='success',
         command='dbt docs generate --target duckdb',
         docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_network',
+        network_mode='hirewire_hirewire_network',
         mounts=[
             Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
+            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
+            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
         ],
         mount_tmp_dir=False,
         environment={

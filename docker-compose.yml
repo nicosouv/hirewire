@@ -188,8 +188,18 @@ services:
       - -c
       - |
         airflow db migrate
-        echo "Airflow initialization completed"
-        echo "Note: Admin user will be created when first accessing the webserver"
+
+        # Create admin user with fixed credentials
+        airflow users create \
+          --username ${AIRFLOW_USERNAME:-admin} \
+          --password ${AIRFLOW_PASSWORD:-admin} \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@hirewire.com || echo "User already exists"
+
+        echo "✅ Airflow initialization completed"
+        echo "👤 Admin credentials: ${AIRFLOW_USERNAME:-admin} / ${AIRFLOW_PASSWORD:-admin}"
     restart: "no"
     profiles:
       - airflow
@@ -201,6 +211,8 @@ services:
     container_name: hirewire_airflow_webserver
     environment:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-webserver:8080/execution/'
+      AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_FERNET_KEY:-46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=}
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_POSTGRES_PASSWORD:-airflow}@airflow-postgres:5432/airflow
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:${AIRFLOW_POSTGRES_PASSWORD:-airflow}@airflow-postgres:5432/airflow
@@ -246,12 +258,15 @@ services:
     container_name: hirewire_airflow_scheduler
     environment:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-webserver:8080/execution/'
+      AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_FERNET_KEY:-46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=}
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_POSTGRES_PASSWORD:-airflow}@airflow-postgres:5432/airflow
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:${AIRFLOW_POSTGRES_PASSWORD:-airflow}@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=}
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__CORE__DAG_DISCOVERY_SAFE_MODE: 'false'
       AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
       AIRFLOW__EMAIL__EMAIL_BACKEND: 'airflow.providers.standard.notifications.null.NullNotifier'
       AIRFLOW_UID: 50000
@@ -289,6 +304,8 @@ services:
     container_name: hirewire_airflow_worker
     environment:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-webserver:8080/execution/'
+      AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_FERNET_KEY:-46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=}
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_POSTGRES_PASSWORD:-airflow}@airflow-postgres:5432/airflow
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:${AIRFLOW_POSTGRES_PASSWORD:-airflow}@airflow-postgres:5432/airflow

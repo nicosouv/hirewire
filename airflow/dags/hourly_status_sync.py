@@ -43,14 +43,14 @@ with DAG(
     # Task 1: Quick refresh of active applications mart
     refresh_active_applications = BashOperator(
         task_id='refresh_active_applications',
-        bash_command='cd /opt/airflow/dbt_project && dbt run --models mart_active_applications --target duckdb',
+        bash_command='docker exec hirewire_dbt dbt run --models mart_active_applications --target duckdb',
         dag=dag,
     )
 
     # Task 2: Refresh interview summary (includes recent changes)
     refresh_interview_summary = BashOperator(
         task_id='refresh_interview_summary',
-        bash_command='cd /opt/airflow/dbt_project && dbt run --models mart_interview_summary_duckdb --target duckdb',
+        bash_command='docker exec hirewire_dbt dbt run --models mart_interview_summary_duckdb --target duckdb',
         dag=dag,
     )
 
