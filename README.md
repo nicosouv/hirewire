@@ -8,12 +8,13 @@ A modern data analytics platform to track and analyze my job interview processes
 
 This project uses a dual-database architecture optimized for both transactional and analytical workloads:
 
-- **React + TypeScript Frontend**: Modern web UI with Tailwind CSS design system
+- **React + TypeScript Frontend**: Modern web UI with Kanban board, side panels, and smart priority actions
 - **FastAPI Backend**: REST API with JWT authentication and business logic
 - **PostgreSQL**: Primary database for raw interview data and transactional operations
 - **DBT**: Data transformation layer that orchestrates PostgreSQL → DuckDB pipeline
 - **DuckDB**: Columnar analytics database with star schema for fast queries
 - **Apache Superset**: Modern dashboarding and visualization platform
+- **Apache Airflow**: Orchestration platform for automated ETL workflows
 
 ## Why This Stack?
 
@@ -69,17 +70,22 @@ docker-compose up -d --build
 
 ### Available Services
 
-- **Web Application**: http://localhost:5173 (modern React UI)
-- **Backend API**: http://localhost:8000 (FastAPI with Swagger docs)
-- **PostgreSQL**: `localhost:5432` (postgres/password)
-- **Apache Superset**: http://localhost:8088 (admin/admin)
+- **Web Application**: http://localhost:5173 (React UI with Kanban board)
+- **Backend API**: http://localhost:8000 (FastAPI with Swagger docs at /docs)
+- **PostgreSQL**: `localhost:5432` (postgres/password/hirewire)
+- **Apache Airflow**: http://localhost:8081 (secured via JWT, requires is_airflow_admin)
+- **Apache Superset**: http://localhost:8088 (admin/admin, requires `--profile superset`)
 - **DuckDB**: File-based at `/data/hirewire.duckdb`
 
 ### Default Login Credentials
 
-For the web application:
-- **Email**: admin@hirewire.com
-- **Password**: secret
+**Web Application**:
+- Email: `admin@hirewire.com`
+- Password: `secret`
+
+**Airflow Access**:
+- Login via web app first, then access http://localhost:8081
+- Requires `is_airflow_admin = true` in database
 
 ## Data Model
 
@@ -105,23 +111,34 @@ Key rule: **One active process per position at a time**. Multiple processes for 
 
 ## Data Entry Workflow
 
-I use interactive scripts to maintain data consistency:
+### Web Application (Recommended)
 
-### New Application Setup
+The modern web UI provides an intuitive interface for data entry:
+
+1. **Quick Add Modal**: One-click application creation
+   - Create company + position + application in a single form
+   - Inline company/position creation without page navigation
+   - Reduces workflow from 11 steps to 2 clicks
+
+2. **Kanban Board**: Visual pipeline management
+   - Drag applications between stages (applied → screening → interviewing → final round)
+   - Click any card to open detailed side panel
+   - Search and filter by status, company, or position
+
+3. **Application Detail Panel**:
+   - Edit status inline with dropdown selector
+   - Add interviews directly from the panel
+   - View complete timeline without navigation
+
+### Command Line (Alternative)
+
+Interactive scripts for automation:
+
 ```bash
 ./scripts/main.sh data-entry add-company     # If new company
 ./scripts/main.sh data-entry add-job         # If new position
 ./scripts/main.sh data-entry add-process     # Start new application
-```
-
-### During Interview Process
-```bash
-./scripts/main.sh data-entry add-interview   # Add each interview round
-# Process status updates automatically via ETL scripts
-```
-
-### Process Completion
-```bash
+./scripts/main.sh data-entry add-interview   # Add interview round
 ./scripts/main.sh data-entry add-outcome     # Final result
 ```
 

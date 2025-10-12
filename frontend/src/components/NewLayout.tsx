@@ -1,14 +1,16 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
+import { useCompanies } from '../hooks/useCompanies';
+import { usePositions } from '../hooks/usePositions';
+import QuickAddModal from './QuickAddModal';
 import {
   LayoutDashboard,
-  Building2,
   Briefcase,
-  GitBranch,
-  Calendar,
   LogOut,
-  User
+  User,
+  Plus,
+  Zap
 } from 'lucide-react';
 
 const PRO_TIPS = [
@@ -36,11 +38,14 @@ const PRO_TIPS = [
   "If they say 'equity', they mean monopoly money. 💸",
 ];
 
-export default function Layout() {
+export default function NewLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [proTip, setProTip] = useState(PRO_TIPS[0]);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const { data: companies } = useCompanies();
+  const { data: positions } = usePositions();
 
   useEffect(() => {
     // Change pro tip every 10 seconds
@@ -52,11 +57,8 @@ export default function Layout() {
   }, []);
 
   const navigation = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Companies', path: '/companies', icon: Building2 },
-    { name: 'Job Positions', path: '/positions', icon: Briefcase },
-    { name: 'Processes', path: '/processes', icon: GitBranch },
-    { name: 'Interviews', path: '/interviews', icon: Calendar },
+    { name: 'Overview', path: '/', icon: LayoutDashboard },
+    { name: 'Applications', path: '/applications', icon: Briefcase },
   ];
 
   const isActive = (path: string) => {
@@ -86,6 +88,15 @@ export default function Layout() {
               />
             </div>
 
+            {/* Quick Add Button - Desktop */}
+            <button
+              onClick={() => setShowQuickAdd(true)}
+              className="hidden lg:flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-honey-500 to-honey-600 hover:from-honey-600 hover:to-honey-700 font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
+            >
+              <Plus className="w-5 h-5" />
+              Quick Add
+            </button>
+
             {/* User menu */}
             {user && (
               <div className="flex items-center gap-4">
@@ -111,7 +122,7 @@ export default function Layout() {
         </div>
       </header>
 
-      <div className="flex max-w-7xl mx-auto">
+      <div className="flex">
         {/* Sidebar */}
         <aside className="w-64 h-[calc(100vh-4rem)] bg-white border-r border-sand/50 sticky top-16 hidden lg:flex flex-col">
           <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
@@ -140,7 +151,7 @@ export default function Layout() {
           </nav>
 
           {/* Sidebar footer - always visible */}
-          <div className="p-4 border-t border-sand/50 flex-shrink-0">
+          <div className="p-4 border-t border-sand/50 flex-shrink-0 space-y-3">
             <div className="bg-gradient-to-br from-honey-50 to-sky-50 border border-honey-200/50 rounded-xl p-4 transition-all duration-500">
               <p className="text-xs font-semibold text-navy-900 mb-1">💡 Pro tip</p>
               <p className="text-xs text-anthracite/70 leading-relaxed">
@@ -175,14 +186,33 @@ export default function Layout() {
                 </Link>
               );
             })}
+
+            {/* Mobile Quick Add Button */}
+            <button
+              onClick={() => setShowQuickAdd(true)}
+              className="flex flex-col items-center justify-center gap-1 px-3 py-2 text-honey-600 min-w-[60px]"
+            >
+              <div className="w-10 h-10 bg-gradient-to-r from-honey-500 to-honey-600 rounded-full flex items-center justify-center shadow-lg">
+                <Plus className="w-5 h-5 " />
+              </div>
+              <span className="text-[10px] font-semibold">Add</span>
+            </button>
           </nav>
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8 pb-24 lg:pb-8">
+        <main className="flex-1 p-6 lg:p-8 pb-24 lg:pb-8 max-w-7xl mx-auto w-full">
           <Outlet />
         </main>
       </div>
+
+      {/* Quick Add Modal */}
+      <QuickAddModal
+        isOpen={showQuickAdd}
+        onClose={() => setShowQuickAdd(false)}
+        companies={companies || []}
+        positions={positions || []}
+      />
     </div>
   );
 }

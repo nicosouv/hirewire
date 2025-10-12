@@ -1,15 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import Layout from './components/Layout';
+import NewLayout from './components/NewLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Companies from './pages/Companies';
-import Positions from './pages/Positions';
-import Processes from './pages/Processes';
-import ProcessDetail from './pages/ProcessDetail';
-import Interviews from './pages/Interviews';
+import NewDashboard from './pages/NewDashboard';
+import Applications from './pages/Applications';
 
 function App() {
   return (
@@ -19,21 +15,17 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Protected routes */}
+        {/* Protected routes with new layout */}
         <Route
           path="/"
           element={
             <ProtectedRoute>
-              <Layout />
+              <NewLayout />
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
-          <Route path="companies" element={<Companies />} />
-          <Route path="positions" element={<Positions />} />
-          <Route path="processes" element={<Processes />} />
-          <Route path="processes/:id" element={<ProcessDetail />} />
-          <Route path="interviews" element={<Interviews />} />
+          <Route index element={<NewDashboard />} />
+          <Route path="applications" element={<Applications />} />
         </Route>
 
         {/* Catch all - redirect to home */}
