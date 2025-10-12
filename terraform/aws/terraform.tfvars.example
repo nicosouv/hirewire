@@ -1,0 +1,30 @@
+# ============================================
+# HireWire AWS Infrastructure - Configuration Example
+# ============================================
+# Copy this file to terraform.tfvars and fill in your values
+# ============================================
+
+# General Configuration
+aws_region  = "us-east-1"
+environment = "prod"
+owner_email = "your-email@example.com"
+domain_name = "hirewire.example.com"  # Optional
+
+# Database Configuration (IMPORTANT: Use strong passwords)
+db_master_username = "hirewire_admin"
+db_master_password = "CHANGE-ME-STRONG-PASSWORD-16-CHARS-MIN"
+
+# Cost Management
+monthly_budget_limit = 150  # USD per month
+enable_cost_optimization = true
+
+# Feature Flags (adjust based on your needs)
+enable_superset      = false  # Set to true if you want Superset dashboard (adds ~$20/month)
+enable_monitoring    = true   # CloudWatch monitoring
+enable_backup        = true   # Database backups
+enable_fargate_spot  = false  # Set to true for 70% cost savings (but tasks may be interrupted)
+
+# Airflow Configuration
+# Generate keys with: openssl rand -base64 32
+airflow_fernet_key           = "CHANGE-ME-GENERATE-WITH-OPENSSL"
+airflow_webserver_secret_key = "CHANGE-ME-GENERATE-WITH-OPENSSL"
