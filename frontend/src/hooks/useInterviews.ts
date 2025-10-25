@@ -33,6 +33,7 @@ export function useCreateInterview() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['interviews'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -48,6 +49,7 @@ export function useUpdateInterview() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['interviews'] });
       queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -61,6 +63,7 @@ export function useDeleteInterview() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['interviews'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

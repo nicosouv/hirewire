@@ -33,6 +33,7 @@ export function useCreateCompany() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -48,6 +49,7 @@ export function useUpdateCompany() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       queryClient.invalidateQueries({ queryKey: ['companies', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -61,6 +63,7 @@ export function useDeleteCompany() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

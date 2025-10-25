@@ -31,9 +31,13 @@ export default function QuickAddModal({ isOpen, onClose, companies, positions }:
 
   const [positionForm, setPositionForm] = useState({
     title: '',
-    location: '',
+    department: '',
+    level: '',
     employment_type: 'full-time' as const,
-    salary_range: '',
+    remote_policy: '',
+    salary_min: '',
+    salary_max: '',
+    currency: 'EUR',
   });
 
   const [processForm, setProcessForm] = useState({
@@ -50,7 +54,16 @@ export default function QuickAddModal({ isOpen, onClose, companies, positions }:
     setShowNewCompany(false);
     setShowNewPosition(false);
     setCompanyForm({ name: '', industry: '', size: '', location: '' });
-    setPositionForm({ title: '', location: '', employment_type: 'full-time', salary_range: '' });
+    setPositionForm({
+      title: '',
+      department: '',
+      level: '',
+      employment_type: 'full-time',
+      remote_policy: '',
+      salary_min: '',
+      salary_max: '',
+      currency: 'EUR'
+    });
     setProcessForm({
       application_date: new Date().toISOString().split('T')[0],
       status: 'applied',
@@ -63,13 +76,15 @@ export default function QuickAddModal({ isOpen, onClose, companies, positions }:
     e.preventDefault();
 
     try {
-      let companyId = parseInt(selectedCompanyId);
-      let positionId = parseInt(selectedPositionId);
+      let companyId: number;
+      let positionId: number;
 
       // Create company if needed
       if (showNewCompany) {
         const company = await createCompany.mutateAsync(companyForm);
         companyId = company.id;
+      } else {
+        companyId = parseInt(selectedCompanyId);
       }
 
       // Create position if needed
@@ -77,8 +92,12 @@ export default function QuickAddModal({ isOpen, onClose, companies, positions }:
         const position = await createPosition.mutateAsync({
           ...positionForm,
           company_id: companyId,
+          salary_min: positionForm.salary_min ? parseInt(positionForm.salary_min) : undefined,
+          salary_max: positionForm.salary_max ? parseInt(positionForm.salary_max) : undefined,
         });
         positionId = position.id;
+      } else {
+        positionId = parseInt(selectedPositionId);
       }
 
       // Create process
@@ -242,18 +261,65 @@ export default function QuickAddModal({ isOpen, onClose, companies, positions }:
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="text"
-                    placeholder="Location"
-                    value={positionForm.location}
-                    onChange={(e) => setPositionForm({ ...positionForm, location: e.target.value })}
+                    placeholder="Department"
+                    value={positionForm.department}
+                    onChange={(e) => setPositionForm({ ...positionForm, department: e.target.value })}
                     className="px-3 py-2 border border-sand bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-honey-500"
                   />
                   <input
                     type="text"
-                    placeholder="Salary range"
-                    value={positionForm.salary_range}
-                    onChange={(e) => setPositionForm({ ...positionForm, salary_range: e.target.value })}
+                    placeholder="Level (e.g., Senior)"
+                    value={positionForm.level}
+                    onChange={(e) => setPositionForm({ ...positionForm, level: e.target.value })}
                     className="px-3 py-2 border border-sand bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-honey-500"
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={positionForm.employment_type}
+                    onChange={(e) => setPositionForm({ ...positionForm, employment_type: e.target.value as any })}
+                    className="px-3 py-2 border border-sand bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-honey-500"
+                  >
+                    <option value="full-time">Full-time</option>
+                    <option value="part-time">Part-time</option>
+                    <option value="contract">Contract</option>
+                    <option value="freelance">Freelance</option>
+                  </select>
+                  <select
+                    value={positionForm.remote_policy}
+                    onChange={(e) => setPositionForm({ ...positionForm, remote_policy: e.target.value })}
+                    className="px-3 py-2 border border-sand bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-honey-500"
+                  >
+                    <option value="">Remote policy</option>
+                    <option value="full-remote">Full remote</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="on-site">On-site</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min salary"
+                    value={positionForm.salary_min}
+                    onChange={(e) => setPositionForm({ ...positionForm, salary_min: e.target.value })}
+                    className="px-3 py-2 border border-sand bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-honey-500"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max salary"
+                    value={positionForm.salary_max}
+                    onChange={(e) => setPositionForm({ ...positionForm, salary_max: e.target.value })}
+                    className="px-3 py-2 border border-sand bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-honey-500"
+                  />
+                  <select
+                    value={positionForm.currency}
+                    onChange={(e) => setPositionForm({ ...positionForm, currency: e.target.value })}
+                    className="px-3 py-2 border border-sand bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-honey-500"
+                  >
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                    <option value="GBP">GBP</option>
+                  </select>
                 </div>
               </div>
             )}

@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.core.security import get_current_user
+from app.models.user import User
 from app.models.interview_process import InterviewProcess
 from app.schemas.interview_process import InterviewProcessCreate, InterviewProcessUpdate, InterviewProcessResponse
 
@@ -43,9 +45,17 @@ def get_interview_process(process_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=InterviewProcessResponse, status_code=status.HTTP_201_CREATED)
-def create_interview_process(process: InterviewProcessCreate, db: Session = Depends(get_db)):
+def create_interview_process(
+    process: InterviewProcessCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Create a new interview process."""
-    db_process = InterviewProcess(**process.model_dump())
+    # Add user_id from authenticated user
+    process_data = process.model_dump()
+    process_data['user_id'] = current_user.id
+
+    db_process = InterviewProcess(**process_data)
     db.add(db_process)
     db.commit()
     db.refresh(db_process)

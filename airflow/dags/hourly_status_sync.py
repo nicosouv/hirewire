@@ -11,8 +11,7 @@ Runs hourly during business hours (9 AM - 7 PM Paris time, Monday-Friday)
 
 from datetime import datetime, timedelta
 from airflow.models.dag import DAG
-from airflow.providers.standard.operators.bash import BashOperator
-from airflow.providers.standard.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator
 import logging
 
 logger = logging.getLogger(__name__)
@@ -54,83 +53,17 @@ with DAG(
         dag=dag,
     )
 
-    # Task 3: Check data freshness
-    def check_data_freshness():
-        """Check if data is fresh (updated in last 24 hours)"""
-        import duckdb
-        from datetime import datetime, timedelta
-
-        conn = duckdb.connect('/data/hirewire.duckdb', read_only=True)
-
-        # Check for recent interviews
-        result = conn.execute("""
-            SELECT
-                MAX(scheduled_date) as latest_interview,
-                COUNT(*) as total_interviews
-            FROM fact_interviews
-            WHERE scheduled_date >= CURRENT_DATE - INTERVAL '7 days'
-        """).fetchone()
-
-        latest_interview = result[0]
-        total_recent = result[1]
-
-        logger.info(f"Latest interview: {latest_interview}")
-        logger.info(f"Interviews in last 7 days: {total_recent}")
-
-        # Check for recent process updates
-        result = conn.execute("""
-            SELECT
-                COUNT(*) as active_processes
-            FROM fact_interview_processes
-            WHERE status NOT IN ('rejected', 'accepted', 'withdrew', 'ghosted')
-        """).fetchone()
-
-        active_count = result[0]
-        logger.info(f"Active processes: {active_count}")
-
-        conn.close()
-
-        if active_count == 0:
-            logger.warning("No active processes found - is data being updated?")
-
-        logger.info("Data freshness check completed")
-
-    check_freshness = PythonOperator(
+    # Task 3: Check data freshness using script in dbt container
+    check_freshness = BashOperator(
         task_id='check_data_freshness',
-        python_callable=check_data_freshness,
+        bash_command='docker exec hirewire_dbt python /scripts/airflow/check_data_freshness.py',
         dag=dag,
     )
 
-    # Task 4: Monitor for stale applications (no activity in 14+ days)
-    def monitor_stale_applications():
-        """Identify applications with no recent activity"""
-        import duckdb
-
-        conn = duckdb.connect('/data/hirewire.duckdb', read_only=True)
-
-        stale = conn.execute("""
-            SELECT
-                company_name,
-                position_title,
-                status,
-                days_since_last_activity
-            FROM mart_active_applications
-            WHERE days_since_last_activity > 14
-            ORDER BY days_since_last_activity DESC
-        """).fetchall()
-
-        if stale:
-            logger.warning(f"Found {len(stale)} stale applications (no activity in 14+ days):")
-            for app in stale[:5]:  # Show top 5
-                logger.warning(f"  - {app[0]} ({app[1]}): {app[3]} days since last activity")
-        else:
-            logger.info("No stale applications found")
-
-        conn.close()
-
-    monitor_stale = PythonOperator(
+    # Task 4: Monitor for stale applications using script in dbt container
+    monitor_stale = BashOperator(
         task_id='monitor_stale_applications',
-        python_callable=monitor_stale_applications,
+        bash_command='docker exec hirewire_dbt python /scripts/airflow/monitor_stale_applications.py',
         dag=dag,
     )
 

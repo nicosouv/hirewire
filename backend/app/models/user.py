@@ -25,6 +25,7 @@ class User(Base):
 
     # Relationships
     interview_processes = relationship("InterviewProcess", back_populates="user", cascade="all, delete-orphan")
+    exports = relationship("Export", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User {self.email}>"

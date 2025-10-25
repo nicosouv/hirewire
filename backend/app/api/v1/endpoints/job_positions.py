@@ -42,7 +42,19 @@ def get_job_position(job_position_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=JobPositionResponse, status_code=status.HTTP_201_CREATED)
 def create_job_position(job_position: JobPositionCreate, db: Session = Depends(get_db)):
     """Create a new job position."""
-    db_job_position = JobPosition(**job_position.model_dump())
+    # Convert schema to dict
+    position_data = job_position.model_dump(exclude_unset=True)
+
+    # Remove fields that don't exist in the database model
+    position_data.pop('location', None)
+    position_data.pop('job_description', None)
+    position_data.pop('requirements', None)
+    position_data.pop('benefits', None)
+    position_data.pop('application_url', None)
+    position_data.pop('notes', None)
+    position_data.pop('salary_range', None)
+
+    db_job_position = JobPosition(**position_data)
     db.add(db_job_position)
     db.commit()
     db.refresh(db_job_position)

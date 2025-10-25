@@ -12,9 +12,6 @@ class InterviewProcessBase(BaseModel):
     application_date: date
     status: str = Field(..., max_length=50)
     source: Optional[str] = Field(None, max_length=100)
-    recruiter_name: Optional[str] = Field(None, max_length=255)
-    recruiter_email: Optional[str] = Field(None, max_length=255)
-    recruiter_phone: Optional[str] = Field(None, max_length=50)
     notes: Optional[str] = None
 
 
@@ -29,9 +26,6 @@ class InterviewProcessUpdate(BaseModel):
     application_date: Optional[date] = None
     status: Optional[str] = Field(None, max_length=50)
     source: Optional[str] = Field(None, max_length=100)
-    recruiter_name: Optional[str] = Field(None, max_length=255)
-    recruiter_email: Optional[str] = Field(None, max_length=255)
-    recruiter_phone: Optional[str] = Field(None, max_length=50)
     notes: Optional[str] = None
 
 

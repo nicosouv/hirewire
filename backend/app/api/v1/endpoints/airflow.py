@@ -150,3 +150,256 @@ def get_interview_stats(db: Session) -> Dict:
         "completed": stats[2] if stats else 0,
         "cancelled": stats[3] if stats else 0
     }
+
+
+@router.post("/tasks/update-process-status", response_model=Dict)
+def update_process_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_airflow_admin)
+):
+    """
+    Automatically update process status based on interview activity.
+
+    This endpoint intelligently updates process status based on:
+    - Scheduled interviews (upcoming)
+    - Completed interviews (progress tracking)
+    - Interview patterns and timing
+
+    Status transitions:
+    - applied → screening (when screening interview scheduled)
+    - applied/screening → interviewing (when technical interviews or 2+ completed)
+    - interviewing → final_round (when final interview or 3+ completed)
+
+    Requires Airflow admin privileges.
+
+    Returns:
+        - message: Summary message
+        - updates: Detailed list of status changes
+        - stats_before: Process status distribution before updates
+        - stats_after: Process status distribution after updates
+        - stale_processes: List of processes needing manual review
+    """
+    # Get status distribution before updates
+    stats_before = get_process_stats(db)
+
+    updates = []
+
+    # Step 1: Update processes to 'screening' based on scheduled screening interviews
+    screening_query = text("""
+        UPDATE hirewire.interview_processes
+        SET
+            status = 'screening',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id IN (
+            SELECT DISTINCT ip.id
+            FROM hirewire.interview_processes ip
+            JOIN hirewire.interviews i ON ip.id = i.process_id
+            WHERE ip.status = 'applied'
+              AND i.status = 'scheduled'
+              AND i.interview_type IN ('phone_screening', 'hr_screening', 'recruiter_call', 'video_screening')
+              AND i.scheduled_date >= CURRENT_TIMESTAMP - INTERVAL '1 day'
+            AND ip.id NOT IN (
+                SELECT DISTINCT process_id
+                FROM hirewire.interview_outcomes
+                WHERE outcome IN ('rejection', 'rejected', 'offer', 'accepted', 'ghosted', 'withdrew')
+            )
+        )
+        RETURNING id
+    """)
+    screening_updated = db.execute(screening_query).fetchall()
+    if screening_updated:
+        updates.append({
+            "transition": "applied → screening",
+            "count": len(screening_updated),
+            "process_ids": [row[0] for row in screening_updated]
+        })
+
+    # Step 2: Update processes to 'interviewing' based on technical/multiple interviews
+    interviewing_query = text("""
+        UPDATE hirewire.interview_processes
+        SET
+            status = 'interviewing',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id IN (
+            SELECT DISTINCT ip.id
+            FROM hirewire.interview_processes ip
+            WHERE ip.status IN ('applied', 'screening')
+            AND (
+                -- Has technical interviews scheduled/completed
+                EXISTS (
+                    SELECT 1 FROM hirewire.interviews i
+                    WHERE i.process_id = ip.id
+                    AND i.interview_type IN ('technical_interview', 'coding_challenge', 'technical_video', 'system_design', 'pair_programming')
+                    AND (i.status = 'scheduled' AND i.scheduled_date >= CURRENT_TIMESTAMP - INTERVAL '1 day' OR i.status = 'completed')
+                )
+                OR
+                -- Has multiple completed interviews
+                (
+                    SELECT COUNT(*) FROM hirewire.interviews i
+                    WHERE i.process_id = ip.id AND i.status = 'completed'
+                ) >= 2
+                OR
+                -- Has scheduled interviews beyond screening
+                EXISTS (
+                    SELECT 1 FROM hirewire.interviews i
+                    WHERE i.process_id = ip.id
+                    AND i.status = 'scheduled'
+                    AND i.interview_type NOT IN ('phone_screening', 'hr_screening', 'recruiter_call', 'video_screening')
+                )
+            )
+            AND ip.id NOT IN (
+                SELECT DISTINCT process_id
+                FROM hirewire.interview_outcomes
+                WHERE outcome IN ('rejection', 'rejected', 'offer', 'accepted', 'ghosted', 'withdrew')
+            )
+        )
+        RETURNING id
+    """)
+    interviewing_updated = db.execute(interviewing_query).fetchall()
+    if interviewing_updated:
+        updates.append({
+            "transition": "applied/screening → interviewing",
+            "count": len(interviewing_updated),
+            "process_ids": [row[0] for row in interviewing_updated]
+        })
+
+    # Step 3: Update processes to 'final_round' based on interview patterns
+    final_round_query = text("""
+        UPDATE hirewire.interview_processes
+        SET
+            status = 'final_round',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id IN (
+            SELECT DISTINCT ip.id
+            FROM hirewire.interview_processes ip
+            WHERE ip.status = 'interviewing'
+            AND (
+                -- Has final/manager interviews scheduled
+                EXISTS (
+                    SELECT 1 FROM hirewire.interviews i
+                    WHERE i.process_id = ip.id
+                    AND i.interview_type IN ('final_interview', 'manager_interview', 'cultural_fit', 'executive_interview')
+                    AND (i.status = 'scheduled' OR i.status = 'completed')
+                )
+                OR
+                -- Has 3+ completed interviews
+                (
+                    SELECT COUNT(*) FROM hirewire.interviews i
+                    WHERE i.process_id = ip.id AND i.status = 'completed'
+                ) >= 3
+            )
+            AND ip.id NOT IN (
+                SELECT DISTINCT process_id
+                FROM hirewire.interview_outcomes
+                WHERE outcome IN ('rejection', 'rejected', 'offer', 'accepted', 'ghosted', 'withdrew')
+            )
+        )
+        RETURNING id
+    """)
+    final_round_updated = db.execute(final_round_query).fetchall()
+    if final_round_updated:
+        updates.append({
+            "transition": "interviewing → final_round",
+            "count": len(final_round_updated),
+            "process_ids": [row[0] for row in final_round_updated]
+        })
+
+    # Commit all updates
+    db.commit()
+
+    # Get status distribution after updates
+    stats_after = get_process_stats(db)
+
+    # Identify stale processes that may need manual review
+    stale_query = text("""
+        SELECT
+            c.name as company,
+            jp.title as position,
+            ip.id as process_id,
+            ip.status,
+            ip.application_date,
+            CURRENT_DATE - ip.application_date as days_since_application,
+            COUNT(i.id) as total_interviews,
+            MAX(i.scheduled_date) as last_interview_date,
+            CASE
+                WHEN MAX(i.scheduled_date) IS NOT NULL THEN
+                    CURRENT_DATE - MAX(i.scheduled_date)::DATE
+                ELSE NULL
+            END as days_since_last_interview
+        FROM hirewire.interview_processes ip
+        JOIN hirewire.job_positions jp ON ip.job_position_id = jp.id
+        JOIN hirewire.companies c ON jp.company_id = c.id
+        LEFT JOIN hirewire.interviews i ON ip.id = i.process_id
+        WHERE ip.id NOT IN (
+            SELECT DISTINCT process_id
+            FROM hirewire.interview_outcomes
+            WHERE outcome IN ('rejection', 'rejected', 'offer', 'accepted', 'ghosted', 'withdrew')
+        )
+        AND (
+            -- Applied for >14 days with no interviews
+            (ip.status = 'applied' AND (CURRENT_DATE - ip.application_date) > 14)
+            OR
+            -- Screening/interviewing with no recent activity
+            (ip.status IN ('screening', 'interviewing') AND
+             (SELECT MAX(scheduled_date) FROM hirewire.interviews WHERE process_id = ip.id) < CURRENT_DATE - INTERVAL '10 days')
+        )
+        GROUP BY ip.id, c.name, jp.title, ip.status, ip.application_date
+        ORDER BY days_since_application DESC
+        LIMIT 10
+    """)
+    stale_processes = db.execute(stale_query).fetchall()
+
+    stale_list = [
+        {
+            "company": row[0],
+            "position": row[1],
+            "process_id": row[2],
+            "status": row[3],
+            "application_date": row[4].isoformat() if row[4] else None,
+            "days_since_application": row[5],
+            "total_interviews": row[6],
+            "last_interview_date": row[7].isoformat() if row[7] else None,
+            "days_since_last_interview": row[8]
+        }
+        for row in stale_processes
+    ]
+
+    # Calculate total updates
+    total_updates = sum(update["count"] for update in updates)
+
+    return {
+        "message": f"Successfully updated {total_updates} process statuses based on interview activity",
+        "total_updates": total_updates,
+        "updates": updates,
+        "stats_before": stats_before,
+        "stats_after": stats_after,
+        "stale_processes": stale_list,
+        "stale_count": len(stale_list)
+    }
+
+
+def get_process_stats(db: Session) -> Dict:
+    """Get current process status distribution (excluding finalized processes)."""
+    stats_query = text("""
+        SELECT
+            status,
+            COUNT(*) as count
+        FROM hirewire.interview_processes
+        WHERE id NOT IN (
+            SELECT DISTINCT process_id
+            FROM hirewire.interview_outcomes
+            WHERE outcome IN ('rejection', 'rejected', 'offer', 'accepted', 'ghosted', 'withdrew')
+        )
+        GROUP BY status
+        ORDER BY count DESC
+    """)
+    stats = db.execute(stats_query).fetchall()
+
+    # Convert to dict format
+    status_counts = {row[0]: row[1] for row in stats}
+    total = sum(status_counts.values())
+
+    return {
+        "total": total,
+        "by_status": status_counts
+    }

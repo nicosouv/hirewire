@@ -33,6 +33,7 @@ export function useCreateProcess() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['processes'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -48,6 +49,7 @@ export function useUpdateProcess() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['processes'] });
       queryClient.invalidateQueries({ queryKey: ['processes', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -61,6 +63,7 @@ export function useDeleteProcess() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['processes'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

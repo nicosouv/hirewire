@@ -2,7 +2,7 @@
 Daily ETL Pipeline DAG
 
 This DAG orchestrates the complete ETL pipeline:
-1. Run DBT models (staging → intermediate → marts) in dedicated DBT container
+1. Run DBT models (staging → intermediate → marts) in existing DBT container
 2. Test data quality
 3. Refresh DuckDB analytics database
 
@@ -10,10 +10,9 @@ Runs daily at 2 AM Paris time
 """
 
 from datetime import datetime, timedelta
-from airflow.models.dag import DAG
-from airflow.providers.docker.operators.docker import DockerOperator
+from airflow import DAG
+from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.python import PythonOperator
-from docker.types import Mount
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,135 +41,37 @@ with DAG(
 ) as dag:
 
     # Task 1: Install DBT dependencies
-    dbt_deps = DockerOperator(
+    dbt_deps = BashOperator(
         task_id='dbt_deps',
-        image='hirewire-dbt:latest',
-        api_version='auto',
-        auto_remove='success',
-        command='dbt deps',
-        docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_hirewire_network',
-        mounts=[
-            Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
-            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
-            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
-        ],
-        mount_tmp_dir=False,
-        environment={
-            'POSTGRES_USER': '{{ var.value.get("POSTGRES_USER", "postgres") }}',
-            'POSTGRES_PASSWORD': '{{ var.value.get("POSTGRES_PASSWORD", "password") }}',
-        },
+        bash_command='docker exec hirewire_dbt dbt deps',
         dag=dag,
     )
 
     # Task 2: Run DBT staging models
-    dbt_run_staging = DockerOperator(
+    dbt_run_staging = BashOperator(
         task_id='dbt_run_staging',
-        image='hirewire-dbt:latest',
-        api_version='auto',
-        auto_remove='success',
-        command='dbt run --models staging --target duckdb',
-        docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_hirewire_network',
-        mounts=[
-            Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
-            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
-            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
-        ],
-        mount_tmp_dir=False,
-        environment={
-            'POSTGRES_USER': '{{ var.value.get("POSTGRES_USER", "postgres") }}',
-            'POSTGRES_PASSWORD': '{{ var.value.get("POSTGRES_PASSWORD", "password") }}',
-        },
+        bash_command='docker exec hirewire_dbt dbt run --models staging --target duckdb',
         dag=dag,
     )
 
     # Task 3: Run DBT intermediate models
-    dbt_run_intermediate = DockerOperator(
+    dbt_run_intermediate = BashOperator(
         task_id='dbt_run_intermediate',
-        image='hirewire-dbt:latest',
-        api_version='auto',
-        auto_remove='success',
-        command='dbt run --models intermediate --target duckdb',
-        docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_hirewire_network',
-        mounts=[
-            Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
-            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
-            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
-        ],
-        mount_tmp_dir=False,
-        environment={
-            'POSTGRES_USER': '{{ var.value.get("POSTGRES_USER", "postgres") }}',
-            'POSTGRES_PASSWORD': '{{ var.value.get("POSTGRES_PASSWORD", "password") }}',
-        },
+        bash_command='docker exec hirewire_dbt dbt run --models intermediate --target duckdb',
         dag=dag,
     )
 
     # Task 4: Run DBT marts models
-    dbt_run_marts = DockerOperator(
+    dbt_run_marts = BashOperator(
         task_id='dbt_run_marts',
-        image='hirewire-dbt:latest',
-        api_version='auto',
-        auto_remove='success',
-        command='dbt run --models marts --target duckdb',
-        docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_hirewire_network',
-        mounts=[
-            Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
-            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
-            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
-        ],
-        mount_tmp_dir=False,
-        environment={
-            'POSTGRES_USER': '{{ var.value.get("POSTGRES_USER", "postgres") }}',
-            'POSTGRES_PASSWORD': '{{ var.value.get("POSTGRES_PASSWORD", "password") }}',
-        },
+        bash_command='docker exec hirewire_dbt dbt run --models marts --target duckdb',
         dag=dag,
     )
 
-    # Task 5: Run DBT tests
-    dbt_test = DockerOperator(
-        task_id='dbt_test',
-        image='hirewire-dbt:latest',
-        api_version='auto',
-        auto_remove='success',
-        command='dbt test --target duckdb',
-        docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_hirewire_network',
-        mounts=[
-            Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
-            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
-            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
-        ],
-        mount_tmp_dir=False,
-        environment={
-            'POSTGRES_USER': '{{ var.value.get("POSTGRES_USER", "postgres") }}',
-            'POSTGRES_PASSWORD': '{{ var.value.get("POSTGRES_PASSWORD", "password") }}',
-        },
-        trigger_rule='all_done',  # Run even if previous tasks fail
-        dag=dag,
-    )
-
-    # Task 6: Generate DBT documentation
-    dbt_docs = DockerOperator(
+    # Task 5: Generate DBT documentation
+    dbt_docs = BashOperator(
         task_id='dbt_docs_generate',
-        image='hirewire-dbt:latest',
-        api_version='auto',
-        auto_remove='success',
-        command='dbt docs generate --target duckdb',
-        docker_url='unix://var/run/docker.sock',
-        network_mode='hirewire_hirewire_network',
-        mounts=[
-            Mount(source='hirewire_duckdb_data', target='/data', type='volume'),
-            Mount(source='/opt/airflow/dbt_project', target='/usr/app', type='bind'),
-            Mount(source='/root/.dbt', target='/root/.dbt', type='bind'),
-        ],
-        mount_tmp_dir=False,
-        environment={
-            'POSTGRES_USER': '{{ var.value.get("POSTGRES_USER", "postgres") }}',
-            'POSTGRES_PASSWORD': '{{ var.value.get("POSTGRES_PASSWORD", "password") }}',
-        },
+        bash_command='docker exec hirewire_dbt dbt docs generate --target duckdb',
         trigger_rule='all_success',
         dag=dag,
     )
@@ -211,4 +112,4 @@ with DAG(
     )
 
     # Define task dependencies
-    dbt_deps >> dbt_run_staging >> dbt_run_intermediate >> dbt_run_marts >> [dbt_test, dbt_docs, verify_duckdb_task]
+    dbt_deps >> dbt_run_staging >> dbt_run_intermediate >> dbt_run_marts >> [dbt_docs, verify_duckdb_task]

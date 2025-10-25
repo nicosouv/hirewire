@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDashboard } from '../hooks/useDashboard';
 import { useProcesses } from '../hooks/useProcesses';
@@ -7,7 +8,8 @@ import { useInterviews } from '../hooks/useInterviews';
 import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
 import PriorityActions from '../components/PriorityActions';
-import { TrendingUp, Briefcase, Calendar, Award, ArrowRight, Zap } from 'lucide-react';
+import ExportModal from '../components/ExportModal';
+import { TrendingUp, Briefcase, Calendar, Award, ArrowRight, Zap, Download } from 'lucide-react';
 
 export default function NewDashboard() {
   const { data: dashboard, isLoading, error } = useDashboard();
@@ -15,6 +17,7 @@ export default function NewDashboard() {
   const { data: companies } = useCompanies();
   const { data: positions } = usePositions();
   const { data: interviews } = useInterviews();
+  const [showExportModal, setShowExportModal] = useState(false);
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorMessage message="Failed to load dashboard data" />;
@@ -30,13 +33,22 @@ export default function NewDashboard() {
   return (
     <div className="space-y-8">
       {/* Hero Section */}
-      <div>
-        <h1 className="text-4xl font-display font-bold text-navy-900">
-          Welcome back! 👋
-        </h1>
-        <p className="mt-2 text-lg text-anthracite/70">
-          Here's what's happening with your job search
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-4xl font-display font-bold text-navy-900">
+            Welcome back! 👋
+          </h1>
+          <p className="mt-2 text-lg text-anthracite/70">
+            Here's what's happening with your job search
+          </p>
+        </div>
+        <button
+          onClick={() => setShowExportModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02]"
+        >
+          <Download className="w-5 h-5" />
+          Export Report
+        </button>
       </div>
 
       {/* Stats Cards - Simplified */}
@@ -178,6 +190,12 @@ export default function NewDashboard() {
           </Link>
         </div>
       )}
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+      />
     </div>
   );
 }

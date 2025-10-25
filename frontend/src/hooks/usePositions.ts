@@ -33,6 +33,7 @@ export function useCreatePosition() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['positions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -48,6 +49,7 @@ export function useUpdatePosition() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['positions'] });
       queryClient.invalidateQueries({ queryKey: ['positions', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -61,6 +63,7 @@ export function useDeletePosition() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['positions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
