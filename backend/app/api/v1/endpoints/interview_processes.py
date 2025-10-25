@@ -2,6 +2,7 @@
 Interview Process API endpoints.
 """
 from typing import List
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -9,6 +10,7 @@ from app.db.session import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.interview_process import InterviewProcess
+from app.models.interview_outcome import InterviewOutcome
 from app.schemas.interview_process import InterviewProcessCreate, InterviewProcessUpdate, InterviewProcessResponse
 
 router = APIRouter()
@@ -68,7 +70,13 @@ def update_interview_process(
     process: InterviewProcessUpdate,
     db: Session = Depends(get_db)
 ):
-    """Update an interview process."""
+    """
+    Update an interview process.
+
+    Automatically creates an outcome when status changes to a final status:
+    - rejected, refused, ghosted, withdrew → creates corresponding outcome
+    - accepted → creates 'accepted' outcome
+    """
     db_process = db.query(InterviewProcess).filter(InterviewProcess.id == process_id).first()
     if not db_process:
         raise HTTPException(
@@ -76,9 +84,46 @@ def update_interview_process(
             detail=f"Interview process with id {process_id} not found"
         )
 
+    # Get the old status before updating
+    old_status = db_process.status
+
     update_data = process.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_process, field, value)
+
+    # Check if status changed to a final status
+    new_status = db_process.status
+    final_statuses = {
+        'rejected': 'rejected',
+        'refused': 'rejected',  # Map 'refused' to 'rejected' outcome
+        'ghosted': 'ghosted',
+        'withdrew': 'withdrew',
+        'accepted': 'accepted'
+    }
+
+    # If status changed to a final status, create outcome automatically
+    if new_status in final_statuses and old_status != new_status:
+        outcome_value = final_statuses[new_status]
+
+        # Check if outcome already exists
+        existing_outcome = db.query(InterviewOutcome).filter(
+            InterviewOutcome.process_id == process_id
+        ).first()
+
+        if not existing_outcome:
+            # Create new outcome
+            new_outcome = InterviewOutcome(
+                process_id=process_id,
+                outcome=outcome_value,
+                outcome_date=date.today(),
+                notes=f"Outcome créé automatiquement lors du changement de statut vers '{new_status}'"
+            )
+            db.add(new_outcome)
+        else:
+            # Update existing outcome
+            existing_outcome.outcome = outcome_value
+            existing_outcome.outcome_date = date.today()
+            existing_outcome.notes = (existing_outcome.notes or "") + f"\nMis à jour automatiquement: {old_status} → {new_status}"
 
     db.commit()
     db.refresh(db_process)
