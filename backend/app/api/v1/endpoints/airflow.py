@@ -403,3 +403,165 @@ def get_process_stats(db: Session) -> Dict:
         "total": total,
         "by_status": status_counts
     }
+
+
+@router.post("/tasks/detect-ghosted-processes", response_model=Dict)
+def detect_ghosted_processes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_airflow_admin)
+):
+    """
+    Auto-detect and mark ghosted processes based on inactivity patterns.
+
+    Ghosting criteria:
+    - No response after 60+ days with no interviews
+    - Had interviews but no follow-up for 45+ days
+    - Applied status for 30+ days with no interviews
+
+    Automatically creates 'ghosted' outcomes for detected processes.
+
+    Requires Airflow admin privileges.
+
+    Returns:
+        - message: Summary message
+        - ghosted_count: Number of processes marked as ghosted
+        - ghosted_processes: List of detected ghosted processes
+        - stats_before: Process stats before detection
+        - stats_after: Process stats after detection
+    """
+    # Get stats before
+    stats_before = get_process_stats(db)
+
+    # Step 1: Detect processes that should be marked as ghosted
+    detect_query = text("""
+        WITH process_activity AS (
+            SELECT
+                ip.id,
+                ip.status,
+                ip.application_date,
+                c.name as company_name,
+                jp.title as position_title,
+                COUNT(i.id) as total_interviews,
+                MAX(i.scheduled_date) as last_interview_date,
+                CURRENT_DATE - ip.application_date as days_since_application,
+                CASE
+                    WHEN MAX(i.scheduled_date) IS NOT NULL
+                    THEN CURRENT_DATE - MAX(i.scheduled_date)::DATE
+                    ELSE NULL
+                END as days_since_last_interview
+            FROM hirewire.interview_processes ip
+            JOIN hirewire.job_positions jp ON ip.job_position_id = jp.id
+            JOIN hirewire.companies c ON jp.company_id = c.id
+            LEFT JOIN hirewire.interviews i ON ip.id = i.process_id
+            WHERE ip.id NOT IN (SELECT DISTINCT process_id FROM hirewire.interview_outcomes WHERE process_id IS NOT NULL)
+            AND ip.status NOT IN ('ghosted', 'rejected', 'accepted', 'offer', 'withdrew')
+            GROUP BY ip.id, ip.status, ip.application_date, c.name, jp.title
+        )
+        SELECT
+            id,
+            company_name,
+            position_title,
+            status,
+            application_date,
+            total_interviews,
+            last_interview_date,
+            days_since_application,
+            days_since_last_interview,
+            CASE
+                WHEN days_since_application > 60 AND total_interviews = 0
+                    THEN 'No response after 60+ days'
+                WHEN total_interviews > 0 AND days_since_last_interview > 45
+                    THEN 'No follow-up for 45+ days after interviews'
+                WHEN status = 'applied' AND days_since_application > 30 AND total_interviews = 0
+                    THEN 'Applied for 30+ days with no interviews'
+                ELSE 'Unknown'
+            END as ghosting_reason
+        FROM process_activity
+        WHERE (
+            -- No response after 60+ days with no interviews
+            (days_since_application > 60 AND total_interviews = 0)
+            OR
+            -- Had interviews but no follow-up for 45+ days
+            (total_interviews > 0 AND days_since_last_interview > 45)
+            OR
+            -- Applied status for 30+ days with no interviews
+            (status = 'applied' AND days_since_application > 30 AND total_interviews = 0)
+        )
+        ORDER BY days_since_application DESC
+    """)
+
+    ghosted_candidates = db.execute(detect_query).fetchall()
+
+    if not ghosted_candidates:
+        return {
+            "message": "No ghosted processes detected",
+            "ghosted_count": 0,
+            "ghosted_processes": [],
+            "stats_before": stats_before,
+            "stats_after": stats_before
+        }
+
+    # Step 2: Mark processes as ghosted
+    process_ids = [row[0] for row in ghosted_candidates]
+
+    update_query = text("""
+        UPDATE hirewire.interview_processes
+        SET
+            status = 'ghosted',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ANY(:process_ids)
+        RETURNING id
+    """)
+
+    updated = db.execute(update_query, {"process_ids": process_ids}).fetchall()
+
+    # Step 3: Create ghosted outcomes
+    for row in ghosted_candidates:
+        process_id = row[0]
+        ghosting_reason = row[9]
+
+        # Check if outcome already exists
+        existing_outcome = db.execute(
+            text("SELECT id FROM hirewire.interview_outcomes WHERE process_id = :process_id"),
+            {"process_id": process_id}
+        ).fetchone()
+
+        if not existing_outcome:
+            outcome_query = text("""
+                INSERT INTO hirewire.interview_outcomes (process_id, outcome, outcome_date, notes, created_at, updated_at)
+                VALUES (:process_id, 'ghosted', CURRENT_DATE, :notes, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """)
+            db.execute(outcome_query, {
+                "process_id": process_id,
+                "notes": f"Auto-detected ghosting: {ghosting_reason}"
+            })
+
+    db.commit()
+
+    # Get stats after
+    stats_after = get_process_stats(db)
+
+    # Format response
+    ghosted_list = [
+        {
+            "process_id": row[0],
+            "company": row[1],
+            "position": row[2],
+            "status": row[3],
+            "application_date": row[4].isoformat() if row[4] else None,
+            "total_interviews": row[5],
+            "last_interview_date": row[6].isoformat() if row[6] else None,
+            "days_since_application": row[7],
+            "days_since_last_interview": row[8] if row[8] else None,
+            "ghosting_reason": row[9]
+        }
+        for row in ghosted_candidates
+    ]
+
+    return {
+        "message": f"Successfully detected and marked {len(ghosted_list)} ghosted processes",
+        "ghosted_count": len(ghosted_list),
+        "ghosted_processes": ghosted_list,
+        "stats_before": stats_before,
+        "stats_after": stats_after
+    }
