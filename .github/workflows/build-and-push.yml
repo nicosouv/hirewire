@@ -1,0 +1,348 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on semantic version tags (v1.2.3)
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/hirewire
+
+jobs:
+  # Detect which services changed since last tag
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      airflow: ${{ steps.changes.outputs.airflow }}
+      dbt: ${{ steps.changes.outputs.dbt }}
+      version: ${{ steps.version.outputs.version }}
+      previous_tag: ${{ steps.previous.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for comparing tags
+
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+
+      - name: Get previous tag
+        id: previous
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "tag=${PREVIOUS_TAG}" >> $GITHUB_OUTPUT
+          echo "Previous tag: ${PREVIOUS_TAG}"
+
+      - name: Detect changed services
+        id: changes
+        run: |
+          if [ -z "${{ steps.previous.outputs.tag }}" ]; then
+            echo "No previous tag found - building all services"
+            echo "backend=true" >> $GITHUB_OUTPUT
+            echo "frontend=true" >> $GITHUB_OUTPUT
+            echo "airflow=true" >> $GITHUB_OUTPUT
+            echo "dbt=true" >> $GITHUB_OUTPUT
+          else
+            echo "Comparing changes between ${{ steps.previous.outputs.tag }} and ${{ github.ref_name }}"
+
+            # Check each service for changes
+            if git diff --name-only ${{ steps.previous.outputs.tag }} ${{ github.ref_name }} | grep -E '^backend/|^.infra/docker/backend'; then
+              echo "backend=true" >> $GITHUB_OUTPUT
+              echo "✅ Backend changed"
+            else
+              echo "backend=false" >> $GITHUB_OUTPUT
+              echo "⏭️  Backend unchanged"
+            fi
+
+            if git diff --name-only ${{ steps.previous.outputs.tag }} ${{ github.ref_name }} | grep -E '^frontend/|^.infra/docker/frontend'; then
+              echo "frontend=true" >> $GITHUB_OUTPUT
+              echo "✅ Frontend changed"
+            else
+              echo "frontend=false" >> $GITHUB_OUTPUT
+              echo "⏭️  Frontend unchanged"
+            fi
+
+            if git diff --name-only ${{ steps.previous.outputs.tag }} ${{ github.ref_name }} | grep -E '^airflow/|^.infra/docker/airflow'; then
+              echo "airflow=true" >> $GITHUB_OUTPUT
+              echo "✅ Airflow changed"
+            else
+              echo "airflow=false" >> $GITHUB_OUTPUT
+              echo "⏭️  Airflow unchanged"
+            fi
+
+            if git diff --name-only ${{ steps.previous.outputs.tag }} ${{ github.ref_name }} | grep -E '^dbt_project/|^profiles/|^.infra/docker/dbt'; then
+              echo "dbt=true" >> $GITHUB_OUTPUT
+              echo "✅ DBT changed"
+            else
+              echo "dbt=false" >> $GITHUB_OUTPUT
+              echo "⏭️  DBT unchanged"
+            fi
+          fi
+
+  # Build and push backend image
+  build-backend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./.infra/docker/backend.Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # Build and push frontend image
+  build-frontend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./.infra/docker/frontend.Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # Build and push Airflow image
+  build-airflow:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.airflow == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-airflow
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./.infra/docker/airflow.Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  # Build and push DBT image
+  build-dbt:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.dbt == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dbt
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./.infra/docker/dbt.Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  # Create GitHub Release
+  create-release:
+    needs: [detect-changes, build-backend, build-frontend, build-airflow, build-dbt]
+    if: always() && needs.detect-changes.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          if [ -n "${{ needs.detect-changes.outputs.previous_tag }}" ]; then
+            echo "## 📦 Docker Images" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+
+            if [ "${{ needs.detect-changes.outputs.backend }}" == "true" ]; then
+              echo "- 🔧 Backend: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ needs.detect-changes.outputs.version }}\`" >> CHANGELOG.md
+            fi
+
+            if [ "${{ needs.detect-changes.outputs.frontend }}" == "true" ]; then
+              echo "- ⚛️  Frontend: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ needs.detect-changes.outputs.version }}\`" >> CHANGELOG.md
+            fi
+
+            if [ "${{ needs.detect-changes.outputs.airflow }}" == "true" ]; then
+              echo "- 🌊 Airflow: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-airflow:${{ needs.detect-changes.outputs.version }}\`" >> CHANGELOG.md
+            fi
+
+            if [ "${{ needs.detect-changes.outputs.dbt }}" == "true" ]; then
+              echo "- 📊 DBT: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dbt:${{ needs.detect-changes.outputs.version }}\`" >> CHANGELOG.md
+            fi
+
+            echo "" >> CHANGELOG.md
+            echo "## 📝 Changes" >> CHANGELOG.md
+            git log --pretty=format:"- %s (%h)" ${{ needs.detect-changes.outputs.previous_tag }}..HEAD >> CHANGELOG.md
+          else
+            echo "## 🎉 Initial Release" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "First release of HireWire with all Docker images." >> CHANGELOG.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+
+  # Post-build summary
+  build-summary:
+    needs: [detect-changes, build-backend, build-frontend, build-airflow, build-dbt]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build Summary
+        run: |
+          echo "## 🏗️  Build Summary for ${{ github.ref_name }}"
+          echo ""
+          echo "| Service | Changed | Build Status |"
+          echo "|---------|---------|--------------|"
+          echo "| Backend | ${{ needs.detect-changes.outputs.backend }} | ${{ needs.build-backend.result }} |"
+          echo "| Frontend | ${{ needs.detect-changes.outputs.frontend }} | ${{ needs.build-frontend.result }} |"
+          echo "| Airflow | ${{ needs.detect-changes.outputs.airflow }} | ${{ needs.build-airflow.result }} |"
+          echo "| DBT | ${{ needs.detect-changes.outputs.dbt }} | ${{ needs.build-dbt.result }} |"
+          echo ""
+
+          if [ "${{ needs.build-backend.result }}" == "failure" ] || \
+             [ "${{ needs.build-frontend.result }}" == "failure" ] || \
+             [ "${{ needs.build-airflow.result }}" == "failure" ] || \
+             [ "${{ needs.build-dbt.result }}" == "failure" ]; then
+            echo "❌ Some builds failed"
+            exit 1
+          fi
+
+          echo "✅ All builds completed successfully"

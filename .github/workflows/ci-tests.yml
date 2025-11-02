@@ -1,0 +1,307 @@
+name: CI - Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+# Cancel in-progress runs for the same workflow
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Detect which parts of the stack changed
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      airflow: ${{ steps.filter.outputs.airflow }}
+      dbt: ${{ steps.filter.outputs.dbt }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci-tests.yml'
+              - '.github/workflows/backend-tests.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci-tests.yml'
+              - '.github/workflows/frontend-tests.yml'
+            airflow:
+              - 'airflow/**'
+              - '.github/workflows/ci-tests.yml'
+              - '.github/workflows/airflow-tests.yml'
+            dbt:
+              - 'dbt_project/**'
+              - 'profiles/**'
+              - '.github/workflows/ci-tests.yml'
+
+  # Backend tests
+  backend-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_hirewire
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run linting
+        run: |
+          cd backend
+          pip install black flake8 mypy
+          black --check app/
+          flake8 app/ --max-line-length=120 --exclude=__pycache__
+
+      - name: Run tests with coverage
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_hirewire
+        run: |
+          cd backend
+          pytest --cov=app --cov-report=xml --cov-report=term-missing -v
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+          name: backend-${{ matrix.python-version }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  # Frontend tests
+  frontend-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: ['20.x']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run linting
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Run tests with coverage
+        run: |
+          cd frontend
+          npm test -- --run --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./frontend/coverage/coverage-final.json
+          flags: frontend
+          name: frontend-${{ matrix.node-version }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  # Airflow DAG tests
+  airflow-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.airflow == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install Airflow and dependencies
+        run: |
+          cd airflow
+          pip install -r requirements-test.txt
+
+      - name: Run DAG integrity tests
+        run: |
+          cd airflow
+          pytest tests/ -v --cov=dags --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./airflow/coverage.xml
+          flags: airflow
+          name: airflow-dags
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  # DBT validation
+  dbt-validation:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.dbt == 'true'
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hirewire
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install DBT and DuckDB
+        run: |
+          pip install dbt-core dbt-duckdb dbt-postgres
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Setup test database
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d hirewire -f sql/postgres/001_schema.sql || true
+
+      - name: DBT deps
+        run: |
+          cd dbt_project
+          dbt deps
+
+      - name: DBT compile (validation)
+        run: |
+          cd dbt_project
+          dbt compile --target postgres
+
+      - name: DBT parse (check for errors)
+        run: |
+          cd dbt_project
+          dbt parse
+
+  # Summary job - required for branch protection
+  ci-tests-summary:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, backend-tests, frontend-tests, airflow-tests, dbt-validation]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "Backend tests: ${{ needs.backend-tests.result }}"
+          echo "Frontend tests: ${{ needs.frontend-tests.result }}"
+          echo "Airflow tests: ${{ needs.airflow-tests.result }}"
+          echo "DBT validation: ${{ needs.dbt-validation.result }}"
+
+          # Fail if any required job failed
+          if [ "${{ needs.backend-tests.result }}" == "failure" ] || \
+             [ "${{ needs.frontend-tests.result }}" == "failure" ] || \
+             [ "${{ needs.airflow-tests.result }}" == "failure" ] || \
+             [ "${{ needs.dbt-validation.result }}" == "failure" ]; then
+            echo "❌ Some tests failed"
+            exit 1
+          fi
+
+          echo "✅ All tests passed or were skipped"
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const backend = '${{ needs.backend-tests.result }}';
+            const frontend = '${{ needs.frontend-tests.result }}';
+            const airflow = '${{ needs.airflow-tests.result }}';
+            const dbt = '${{ needs.dbt-validation.result }}';
+
+            const emoji = (result) => {
+              if (result === 'success') return '✅';
+              if (result === 'skipped') return '⏭️';
+              if (result === 'failure') return '❌';
+              return '⚪';
+            };
+
+            const message = `## 🧪 CI Test Results
+
+            | Component | Status |
+            |-----------|--------|
+            | Backend | ${emoji(backend)} ${backend} |
+            | Frontend | ${emoji(frontend)} ${frontend} |
+            | Airflow | ${emoji(airflow)} ${airflow} |
+            | DBT | ${emoji(dbt)} ${dbt} |
+
+            ${backend === 'failure' || frontend === 'failure' || airflow === 'failure' || dbt === 'failure' ? '⚠️ Some tests failed. Please check the logs.' : '✅ All tests passed!'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
