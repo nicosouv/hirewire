@@ -283,7 +283,7 @@ docker-compose -f docker-compose.prod.yml up -d
 ## Next Steps
 
 1. ✅ L'application tourne en local
-2. 📝 Lire `README_WEB_APP.md` pour la documentation complète
+2. 📝 Lire `WEBAPP_QUICKSTART.md` pour la documentation complète
 3. 🎨 Customiser le frontend dans `frontend/src/`
 4. 🔧 Ajouter des endpoints dans `backend/app/api/v1/endpoints/`
 5. 🧪 Écrire des tests dans `backend/tests/`
@@ -292,5 +292,5 @@ docker-compose -f docker-compose.prod.yml up -d
 ## Support
 
 - Documentation API: http://localhost:8000/api/v1/docs
-- Documentation complète: `README_WEB_APP.md`
+- Documentation complète: `WEBAPP_QUICKSTART.md`
 - Makefile commands: `make help`

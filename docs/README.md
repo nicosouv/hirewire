@@ -33,7 +33,7 @@ Documentation complète pour le projet HireWire - Plateforme d'analyse d'entreti
   - TanStack Query
   - Tailwind CSS
 
-- **[README_WEB_APP.md](README_WEB_APP.md)** - Guide web app
+- **[WEBAPP_QUICKSTART.md](WEBAPP_QUICKSTART.md)** - Quick start web app
   - Configuration
   - Utilisation
 
@@ -104,7 +104,7 @@ docs/
 ├── DATA_PIPELINE.md             # Pipeline ETL/DBT
 ├── WEB_APP.md                   # Application web
 ├── FRONTEND.md                  # Frontend React
-├── README_WEB_APP.md            # Guide web app
+├── WEBAPP_QUICKSTART.md         # Quick start web app
 ├── UX_REDESIGN.md              # Redesign UX
 ├── AIRFLOW.md                   # Airflow setup
 ├── AIRFLOW_AUTH.md              # Airflow auth

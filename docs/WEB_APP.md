@@ -153,9 +153,9 @@ Production (docker-compose.prod.yml):
 ### 📚 Documentation
 
 ```
-├── README_WEB_APP.md          ✅ Documentation complète (architecture, dev, prod)
+├── WEBAPP_QUICKSTART.md       ✅ Quick start guide (setup, config, usage)
 ├── QUICKSTART.md              ✅ Guide de démarrage rapide
-├── WEB_APP_SUMMARY.md         ✅ Ce fichier (résumé)
+├── WEB_APP.md                 ✅ Ce fichier (documentation complète)
 └── Makefile (make help)       ✅ Commandes disponibles
 ```
 
