@@ -9,6 +9,7 @@ Complete CI/CD pipeline using GitHub Actions with intelligent change detection a
 - [Docker Images](#docker-images)
 - [Release Process](#release-process)
 - [Configuration](#configuration)
+- [Setup Verification](#setup-verification)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -506,6 +507,219 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_USERNAME --password-stdin
 # Pull private images
 docker pull ghcr.io/YOUR_USERNAME/hirewire-backend:latest
 ```
+
+---
+
+## ✅ Setup Verification
+
+### Initial Setup Steps
+
+#### 1. Enable GitHub Packages
+
+Go to: **Settings → Actions → General**
+
+Under "Workflow permissions":
+- ✅ **Read and write permissions**
+- ✅ **Allow GitHub Actions to create and approve pull requests**
+
+Click **Save**.
+
+#### 2. Replace Placeholders
+
+Replace `YOUR_USERNAME` with your GitHub username in:
+- `.github/workflows/build-and-push.yml`
+- `docs/CICD_GUIDE.md`
+- `docs/CICD_QUICKREF.md`
+
+**Quick replace**:
+```bash
+find . -type f \( -name "*.yml" -o -name "*.md" \) -exec sed -i '' 's/YOUR_USERNAME/your-username/g' {} +
+```
+
+#### 3. Test Locally
+
+```bash
+# Run all tests
+./scripts/run_all_tests.sh
+
+# Test release script (dry-run)
+./scripts/release.sh --dry-run
+
+# Verify Dockerfiles build
+docker build -f .infra/docker/backend.Dockerfile ./backend
+docker build -f .infra/docker/frontend.Dockerfile ./frontend
+```
+
+#### 4. First Commit
+
+```bash
+# Add CI/CD files
+git add .github/ .infra/ scripts/ docs/
+
+# Commit
+git commit -m "feat: add CI/CD pipeline with intelligent change detection"
+
+# Push (triggers tests)
+git push origin main
+
+# Verify tests pass
+# https://github.com/YOUR_USERNAME/hirewire/actions
+```
+
+#### 5. First Release
+
+```bash
+# Create first release
+./scripts/release.sh 1.0.0
+
+# Monitor progress (~20-30 min)
+# https://github.com/YOUR_USERNAME/hirewire/actions
+
+# Verify images (after build completes)
+docker pull ghcr.io/YOUR_USERNAME/hirewire-backend:1.0.0
+docker pull ghcr.io/YOUR_USERNAME/hirewire-frontend:1.0.0
+docker pull ghcr.io/YOUR_USERNAME/hirewire-airflow:1.0.0
+docker pull ghcr.io/YOUR_USERNAME/hirewire-dbt:1.0.0
+
+# Check GitHub Release
+# https://github.com/YOUR_USERNAME/hirewire/releases/latest
+```
+
+### Validation Checklist
+
+Before considering setup complete, verify:
+
+- [ ] GitHub Packages enabled (Settings → Actions → Permissions)
+- [ ] `YOUR_USERNAME` replaced in all files
+- [ ] Branch protection configured on `main` (optional but recommended)
+- [ ] Tests pass locally: `./scripts/run_all_tests.sh`
+- [ ] First CI/CD commit pushed and tests pass in GitHub Actions
+- [ ] First release created: `./scripts/release.sh 1.0.0`
+- [ ] Docker images available on GHCR
+- [ ] GitHub Release created automatically
+- [ ] Documentation reviewed
+
+### Example Scenarios
+
+#### Scenario 1: Frontend Bug Fix
+
+```bash
+# 1. Create branch
+git checkout -b fix/dashboard-bug
+
+# 2. Fix bug in frontend/src/pages/Dashboard.tsx
+
+# 3. Commit and push
+git add frontend/
+git commit -m "fix: correct dashboard data display"
+git push origin fix/dashboard-bug
+
+# CI Result:
+# ✅ Frontend tests (2 min)
+# ⏭️  Backend tests skipped
+# ⏭️  Airflow tests skipped
+# ⏭️  DBT validation skipped
+
+# 4. Merge to main
+git checkout main
+git merge fix/dashboard-bug
+git push origin main
+
+# 5. Create patch release
+./scripts/release.sh patch  # 1.0.0 -> 1.0.1
+
+# Build Result:
+# ✅ Frontend image: ghcr.io/.../hirewire-frontend:1.0.1
+# ⏭️  Backend skipped (no changes)
+# ⏭️  Airflow skipped (no changes)
+# ⏭️  DBT skipped (no changes)
+```
+
+#### Scenario 2: Backend + Frontend Feature
+
+```bash
+# 1. Create feature branch
+git checkout -b feature/user-profile
+
+# 2. Develop feature
+# backend/app/api/v1/endpoints/profile.py
+# frontend/src/pages/Profile.tsx
+
+# 3. Commit
+git add backend/ frontend/
+git commit -m "feat: add user profile management"
+git push origin feature/user-profile
+
+# CI Result:
+# ✅ Backend tests (4 min)
+# ✅ Frontend tests (3 min)
+# ⏭️  Airflow tests skipped
+# ⏭️  DBT validation skipped
+
+# 4. Create PR
+gh pr create --title "Add user profile management"
+# CI re-runs + automatic comment on PR
+
+# 5. Merge and release minor version
+git checkout main
+git pull
+./scripts/release.sh minor  # 1.0.1 -> 1.1.0
+
+# Build Result:
+# ✅ Backend image: ghcr.io/.../hirewire-backend:1.1.0
+# ✅ Frontend image: ghcr.io/.../hirewire-frontend:1.1.0
+# ⏭️  Airflow skipped
+# ⏭️  DBT skipped
+```
+
+#### Scenario 3: New Airflow DAG
+
+```bash
+# 1. Add DAG in airflow/dags/new_dag.py
+
+# 2. Commit and push
+git add airflow/
+git commit -m "feat: add data quality DAG"
+git push origin main
+
+# CI Result:
+# ✅ Airflow tests (2 min)
+# ⏭️  Backend tests skipped
+# ⏭️  Frontend tests skipped
+# ⏭️  DBT validation skipped
+
+# 3. Release minor version
+./scripts/release.sh minor  # 1.1.0 -> 1.2.0
+
+# Build Result:
+# ✅ Airflow image: ghcr.io/.../hirewire-airflow:1.2.0
+# ⏭️  Backend skipped
+# ⏭️  Frontend skipped
+# ⏭️  DBT skipped
+```
+
+### Performance Metrics
+
+#### CI/CD Time Savings
+
+**Before**: All tests every time (~15 min)
+**After**: Selective tests (~2-5 min average)
+
+**Savings**: 60-80% CI time reduction
+
+#### Bandwidth Savings
+
+**Before**: Build all images every release (~4GB)
+**After**: Selective builds (~500MB-1GB average)
+
+**Savings**: 70-80% bandwidth reduction
+
+#### Key Metrics to Monitor
+
+- ⏱️  **Average CI time**: Target < 5 min
+- ✅ **Success rate**: Target > 95%
+- 🐳 **Image size**: Target < 500MB (except Airflow ~1.5GB)
+- 📦 **Outdated dependencies**: Target 0 (via Dependabot)
 
 ---
 

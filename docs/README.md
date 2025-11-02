@@ -64,20 +64,17 @@ Documentation complète pour le projet HireWire - Plateforme d'analyse d'entreti
 
 ### CI/CD & Déploiement
 
-- **[CICD_README.md](CICD_README.md)** - Quick reference CI/CD
+- **[CICD_QUICKREF.md](CICD_QUICKREF.md)** - Quick reference CI/CD
   - Commandes rapides
   - Workflow overview
 
-- **[CICD_GUIDE.md](CICD_GUIDE.md)** - Guide complet CI/CD (500+ lignes)
+- **[CICD_GUIDE.md](CICD_GUIDE.md)** - Guide complet CI/CD (700+ lignes)
   - Architecture détaillée
   - Workflows GitHub Actions
   - Build Docker et releases
+  - Setup et validation
+  - Scénarios d'utilisation
   - Troubleshooting
-
-- **[CICD_SETUP.md](CICD_SETUP.md)** - Configuration initiale CI/CD
-  - Premier setup
-  - Checklist de validation
-  - Exemples de scénarios
 
 - **[PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)** - Déploiement production
   - Utilisation des images GHCR
@@ -113,9 +110,8 @@ docs/
 ├── AIRFLOW_AUTH.md              # Airflow auth
 ├── AIRFLOW_TESTING.md           # Airflow tests
 ├── EXPORTS.md                   # Système d'export
-├── CICD_README.md               # CI/CD quick ref
-├── CICD_GUIDE.md                # CI/CD complet
-├── CICD_SETUP.md                # CI/CD setup initial
+├── CICD_QUICKREF.md             # CI/CD quick ref
+├── CICD_GUIDE.md                # CI/CD complet (includes setup)
 ├── PRODUCTION_DEPLOYMENT.md     # Déploiement prod
 ├── TESTING_README.md            # Tests quick ref
 └── TESTING_GUIDE.md             # Tests complet
