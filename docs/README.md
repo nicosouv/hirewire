@@ -85,7 +85,7 @@ Documentation complète pour le projet HireWire - Plateforme d'analyse d'entreti
 
 ### Testing
 
-- **[TESTING_README.md](TESTING_README.md)** - Quick reference tests
+- **[TESTING_QUICKREF.md](TESTING_QUICKREF.md)** - Quick reference tests
   - Commandes rapides pour lancer les tests
 
 - **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Guide complet des tests
@@ -113,7 +113,7 @@ docs/
 ├── CICD_QUICKREF.md             # CI/CD quick ref
 ├── CICD_GUIDE.md                # CI/CD complet (includes setup)
 ├── PRODUCTION_DEPLOYMENT.md     # Déploiement prod
-├── TESTING_README.md            # Tests quick ref
+├── TESTING_QUICKREF.md          # Tests quick ref
 └── TESTING_GUIDE.md             # Tests complet
 ```
 
