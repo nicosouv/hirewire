@@ -550,9 +550,43 @@ Votre pipeline CI/CD est maintenant opérationnel avec :
 ✅ **Scripts helper**
 ✅ **Mises à jour automatiques (Dependabot)**
 
+## ✨ Pipeline Vérifié et Fonctionnel
+
+Le pipeline a été testé et validé avec succès :
+
+**v0.4.6** - Premier build frontend réussi
+- Image: `ghcr.io/nicosouv/hirewire-frontend:0.4.6`
+- Taille: 83MB (optimisé)
+- Temps de build: 43 secondes
+- Plateforme: linux/amd64
+
+**v0.4.7** - Build backend testé
+- Image: `ghcr.io/nicosouv/hirewire-backend:0.4.7`
+- Build multi-architecture (amd64 + arm64)
+- Tests et build automatiques validés
+
+**Note ARM64** : Le build ARM64 pour le frontend a été désactivé en raison d'un crash QEMU lors de `npm ci`. Le backend, Airflow et DBT supportent toujours le multi-architecture.
+
+## 📦 Images Docker Disponibles
+
+Toutes les images sont disponibles sur GitHub Container Registry :
+
+```bash
+# Télécharger les images
+docker pull ghcr.io/nicosouv/hirewire-frontend:0.4.6
+docker pull --platform linux/amd64 ghcr.io/nicosouv/hirewire-backend:0.4.7
+
+# Utiliser dans docker-compose.yml
+services:
+  frontend:
+    image: ghcr.io/nicosouv/hirewire-frontend:0.4.6
+  backend:
+    image: ghcr.io/nicosouv/hirewire-backend:0.4.7
+```
+
 **Prochaines étapes recommandées** :
 
-1. Tester le workflow complet avec une feature
+1. ✅ Tester le workflow complet avec une feature (FAIT)
 2. Configurer un environnement de staging
 3. Ajouter des notifications (Slack, Discord)
 4. Mettre en place le déploiement automatique

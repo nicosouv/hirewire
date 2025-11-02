@@ -22,11 +22,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # Production FastAPI Backend
+  # Production FastAPI Backend - Using GHCR image
   api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/nicosouv/hirewire-backend:0.4.7
     container_name: hirewire_api_prod
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/hirewire
@@ -45,11 +43,10 @@ services:
       timeout: 10s
       retries: 3
 
-  # Production React Frontend
+  # Production React Frontend - Using GHCR image
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/nicosouv/hirewire-frontend:0.4.6
+    platform: linux/amd64
     container_name: hirewire_frontend_prod
     networks:
       - hirewire_network_prod
