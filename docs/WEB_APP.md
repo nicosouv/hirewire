@@ -130,7 +130,7 @@ frontend/
 │   ├── nginx.conf              ✅ Config nginx principale
 │   └── conf.d/default.conf     ✅ Reverse proxy (api + frontend)
 ├── Makefile                    ✅ 20+ commandes utiles
-└── start.sh                    ✅ Script de démarrage automatique
+└── scripts/start.sh            ✅ Script de démarrage automatique
 ```
 
 **Services Docker Compose:**
@@ -214,7 +214,7 @@ ProcessStatusService.update_process_status_from_outcome(db, outcome)
 
 ### Option 1: Script automatique ⭐
 ```bash
-./start.sh
+./scripts/start.sh
 ```
 
 ### Option 2: Makefile

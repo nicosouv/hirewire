@@ -3,7 +3,7 @@
 ## Option 1: Script automatique (Recommandé)
 
 ```bash
-./start.sh
+./scripts/start.sh
 ```
 
 Puis ouvrez http://localhost:5173
