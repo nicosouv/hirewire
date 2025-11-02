@@ -68,11 +68,17 @@ run_script() {
         "etl")
             case $script in
                 "run") bash scripts/etl/etl_runner.sh "$@" ;;
-                "update-interviews") bash scripts/etl/etl_update_past_interviews.sh "$@" ;;
-                "update-status") bash scripts/etl/etl_update_process_status.sh "$@" ;;
-                "sync-all") bash scripts/etl/etl_sync_all_statuses.sh "$@" ;;
-                "detect-ghosted") bash scripts/etl/etl_detect_ghosted.sh "$@" ;;
-                *) echo "❌ Unknown ETL script: $script"; echo "Available: run, update-interviews, update-status, sync-all, detect-ghosted"; exit 1 ;;
+                *)
+                    echo "❌ Unknown ETL script: $script"
+                    echo "Available: run"
+                    echo ""
+                    echo "ℹ️  Note: Most ETL tasks are now automated via Airflow DAGs:"
+                    echo "  - update-interviews → update_past_interviews DAG"
+                    echo "  - update-status → update_process_status DAG"
+                    echo "  - detect-ghosted → detect_ghosted_processes DAG"
+                    echo "  Access Airflow UI at http://localhost:8081"
+                    exit 1
+                    ;;
             esac
             ;;
         "export")

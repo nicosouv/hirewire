@@ -47,4 +47,5 @@ npm-debug.log*
 # IDE
 *.swp
 *.swo
-.vscode/settings.json
+.vscode/settings.jsonexports/
+airflow/TEST_RESULTS.md
