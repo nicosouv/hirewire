@@ -1,0 +1,75 @@
+name: Test Airflow DAGs
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'airflow/dags/**'
+      - 'airflow/tests/**'
+      - '.github/workflows/test-airflow-dags.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'airflow/dags/**'
+      - 'airflow/tests/**'
+
+jobs:
+  test-dags:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('airflow/requirements-test.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          cd airflow
+          pip install -r requirements-test.txt
+
+      - name: Run DAG tests
+        run: |
+          cd airflow
+          pytest tests/ -v --cov=dags --cov-report=xml --cov-report=term
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: airflow/coverage.xml
+          flags: airflow-dags
+          name: airflow-dag-tests
+          fail_ci_if_error: false
+
+      - name: Check coverage threshold
+        run: |
+          cd airflow
+          pytest tests/ --cov=dags --cov-fail-under=30
+
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const coverage = fs.readFileSync('airflow/coverage.xml', 'utf8');
+            const match = coverage.match(/line-rate="([0-9.]+)"/);
+            const coveragePercent = match ? (parseFloat(match[1]) * 100).toFixed(1) : 'N/A';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ✅ Airflow DAG Tests Passed\n\n- **Coverage**: ${coveragePercent}%\n- **Status**: All structural tests passed\n\nSee [workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.`
+            });
