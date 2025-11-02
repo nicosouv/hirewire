@@ -22,7 +22,7 @@ HireWire uses a **smart CI/CD pipeline** that:
 1. ✅ **Runs tests on every push/PR** - Validates code quality
 2. 🔍 **Detects changes intelligently** - Only tests affected services
 3. 🐳 **Builds Docker images on tags** - Semantic versioning (v1.2.3)
-4. 🎯 **Selective image building** - Only rebuilds changed services
+4. 🎯 **Hybrid build strategy** - Complete builds on releases, selective for development
 5. 📦 **Pushes to GHCR** - GitHub Container Registry
 6. 🚀 **Creates GitHub Releases** - Automated changelog
 
@@ -143,25 +143,48 @@ filters: |
 
 ### 2. Build and Push (`build-and-push.yml`)
 
-**Trigger**: Push tag matching `v*.*.*` (e.g., `v1.2.3`)
+**Trigger**:
+- Push tag matching `v*.*.*` (e.g., `v1.2.3`)
+- Manual trigger via GitHub Actions UI
 
 **Purpose**: Build and publish Docker images
 
 **Features**:
-- 🔍 **Selective building** - Only rebuilds changed services
+- 🎯 **Hybrid build strategy** - Complete builds on releases, selective for development
 - 🐳 **Multi-arch images** - linux/amd64 + linux/arm64
 - 📦 **Layer caching** - Fast rebuilds with GitHub cache
 - 🏷️  **Smart tagging** - v1.2.3, v1.2, v1, latest
 - 📝 **Auto-changelog** - Generated from git commits
 - 🚀 **GitHub Releases** - Automatic release creation
+- 🔨 **Manual override** - Force build all images option
 
-**Change Detection Logic**:
+**🎯 Hybrid Build Strategy**:
+
+The workflow uses different strategies based on the trigger:
+
+| Trigger Type | Strategy | Reason |
+|--------------|----------|--------|
+| **Release tags** (v*.*.*) | Build ALL images | Version consistency - all services share same version |
+| **Development** (branches/PRs) | Change detection | Speed - only build what changed |
+| **Manual + force option** | Build ALL images | Testing/debugging - full rebuild |
+
+**Why Hybrid Strategy?**
+
+✅ **Production Consistency**: v0.4.9 = all images tagged 0.4.9
+✅ **Easy Deployment**: Single version tag in docker-compose.prod.yml
+✅ **Faster Development**: Only rebuild changed services during iteration
+✅ **Simplified Troubleshooting**: Know exact versions of all components
+
+**Change Detection Logic (Development Mode)**:
 
 ```bash
-# Compares current tag with previous tag
-git diff --name-only v1.0.0 v1.1.0 | grep '^backend/'
+# On release tags: Build ALL (ignore changes)
+if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+  BUILD_ALL=true
+fi
 
-# If first tag (no previous), builds all services
+# On branches: Detect changes
+git diff --name-only v1.0.0 v1.1.0 | grep '^backend/'
 ```
 
 **Image Tags**:
@@ -176,27 +199,51 @@ For tag `v1.2.3`, creates:
 
 | Job | Purpose |
 |-----|---------|
-| `detect-changes` | Compare with previous tag |
-| `build-backend` | Build backend image (if changed) |
-| `build-frontend` | Build frontend image (if changed) |
-| `build-airflow` | Build Airflow image (if changed) |
-| `build-dbt` | Build DBT image (if changed) |
+| `detect-changes` | Decide build strategy based on trigger |
+| `build-backend` | Build backend image |
+| `build-frontend` | Build frontend image |
+| `build-airflow` | Build Airflow image |
+| `build-dbt` | Build DBT image |
 | `create-release` | Create GitHub Release with changelog |
 | `build-summary` | Report build results |
 
-**Example Scenario**:
+**Example Scenarios**:
 
+**Release Tag (Complete Build)**:
 ```bash
-# Only frontend changed since v1.0.0
-$ git diff --name-only v1.0.0..v1.1.0
-frontend/src/App.tsx
-frontend/src/components/Dashboard.tsx
+$ git tag v1.2.0
+$ git push origin v1.2.0
 
 # Result:
-✅ Frontend image built and pushed
+🎯 Release tag detected - building ALL images
+✅ Backend image built → ghcr.io/.../hirewire-backend:1.2.0
+✅ Frontend image built → ghcr.io/.../hirewire-frontend:1.2.0
+✅ Airflow image built → ghcr.io/.../hirewire-airflow:1.2.0
+✅ DBT image built → ghcr.io/.../hirewire-dbt:1.2.0
+```
+
+**Development (Selective Build)**:
+```bash
+# Only frontend changed
+$ git diff --name-only v1.1.0..HEAD
+frontend/src/App.tsx
+
+# Result (if not a release tag):
+🔍 Development mode - detecting changes
+✅ Frontend image built
 ⏭️  Backend image skipped (no changes)
 ⏭️  Airflow image skipped (no changes)
 ⏭️  DBT image skipped (no changes)
+```
+
+**Manual Trigger**:
+```bash
+# Via GitHub Actions UI
+# Option: "Force build all images" = true
+
+# Result:
+🔨 Manual build triggered with FORCE BUILD ALL
+✅ All images built
 ```
 
 ---
