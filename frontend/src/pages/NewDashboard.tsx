@@ -11,6 +11,7 @@ import PriorityActions from '../components/PriorityActions';
 import ExportModal from '../components/ExportModal';
 import { TrendingUp, Briefcase, Calendar, Award, ArrowRight, Zap, Download } from 'lucide-react';
 
+// Dashboard overview page - v0.4.5 test
 export default function NewDashboard() {
   const { data: dashboard, isLoading, error } = useDashboard();
   const { data: processes } = useProcesses();
