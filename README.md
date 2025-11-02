@@ -723,6 +723,78 @@ docker-compose --profile airflow down
 docker-compose down -v
 ```
 
+## CI/CD & Deployment
+
+The project includes a complete CI/CD pipeline with GitHub Actions:
+
+### Automated Testing & Building
+
+**On every push/PR**:
+- Smart change detection (only tests affected services)
+- Backend tests: pytest + FastAPI TestClient (Python 3.11/3.12)
+- Frontend tests: Vitest + React Testing Library + Playwright E2E
+- Airflow tests: DAG validation and integrity checks
+- Parallel execution for faster feedback (2-5 min)
+
+**On new tags** (v1.2.3):
+- Selective Docker image building (only changed services)
+- Multi-architecture support (amd64 + arm64 for backend)
+- Push to GitHub Container Registry (GHCR)
+- Automatic GitHub Releases with changelog
+- Build time: 5-10 min per service
+
+### Available Docker Images
+
+Pre-built production images on GitHub Container Registry:
+
+```bash
+# Pull latest images
+docker pull ghcr.io/nicosouv/hirewire-backend:latest
+docker pull ghcr.io/nicosouv/hirewire-frontend:latest
+docker pull ghcr.io/nicosouv/hirewire-airflow:latest
+docker pull ghcr.io/nicosouv/hirewire-dbt:latest
+
+# Use in production
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Creating Releases
+
+```bash
+# Use the release helper script
+./scripts/release.sh 1.2.3
+
+# Or bump version automatically
+./scripts/release.sh patch   # 1.0.0 -> 1.0.1
+./scripts/release.sh minor   # 1.0.0 -> 1.1.0
+./scripts/release.sh major   # 1.0.0 -> 2.0.0
+```
+
+This triggers:
+1. Intelligent change detection
+2. Build Docker images for changed services
+3. Push to GHCR with semantic version tags
+4. Create GitHub Release with automated changelog
+
+See [docs/CICD_GUIDE.md](docs/CICD_GUIDE.md) for detailed CI/CD documentation and [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md) for production deployment guide.
+
+## Documentation
+
+Comprehensive documentation available in the `docs/` directory:
+
+- **[docs/QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture
+- **[docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md)** - ETL pipeline details
+- **[docs/WEB_APP.md](docs/WEB_APP.md)** - Web application guide
+- **[docs/FRONTEND.md](docs/FRONTEND.md)** - Frontend documentation
+- **[docs/AIRFLOW.md](docs/AIRFLOW.md)** - Airflow configuration
+- **[docs/EXPORTS.md](docs/EXPORTS.md)** - Export system guide
+- **[docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)** - Complete testing guide
+- **[docs/CICD_GUIDE.md](docs/CICD_GUIDE.md)** - CI/CD pipeline (500+ lines)
+- **[docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md)** - Production deployment
+
+See [docs/README.md](docs/README.md) for the complete documentation index.
+
 ## Tech Highlights
 
 **Modern Best Practices**:
