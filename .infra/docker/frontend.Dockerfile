@@ -7,13 +7,13 @@ FROM node:20-alpine as builder
 WORKDIR /build
 
 # Copy package files
-COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 
 # Install dependencies
 RUN npm ci --only=production --silent
 
 # Copy source code
-COPY . .
+COPY frontend/ .
 
 # Build application
 RUN npm run build
