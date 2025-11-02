@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - 'v*.*.*'  # Trigger on semantic version tags (v1.2.3)
+  workflow_dispatch:
+    inputs:
+      force_build_all:
+        description: 'Force build all images (ignore change detection)'
+        required: false
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -42,13 +49,30 @@ jobs:
       - name: Detect changed services
         id: changes
         run: |
-          if [ -z "${{ steps.previous.outputs.tag }}" ]; then
+          # Strategy: Build ALL images on release tags for version consistency
+          # Use change detection for development (branches/PRs)
+
+          if [ "${{ github.event.inputs.force_build_all }}" == "true" ]; then
+            echo "🔨 Manual build triggered with FORCE BUILD ALL option"
+            echo "backend=true" >> $GITHUB_OUTPUT
+            echo "frontend=true" >> $GITHUB_OUTPUT
+            echo "airflow=true" >> $GITHUB_OUTPUT
+            echo "dbt=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "🎯 Release tag detected - building ALL images for version consistency"
+            echo "Strategy: Complete build ensures all images share the same version tag"
+            echo "backend=true" >> $GITHUB_OUTPUT
+            echo "frontend=true" >> $GITHUB_OUTPUT
+            echo "airflow=true" >> $GITHUB_OUTPUT
+            echo "dbt=true" >> $GITHUB_OUTPUT
+          elif [ -z "${{ steps.previous.outputs.tag }}" ]; then
             echo "No previous tag found - building all services"
             echo "backend=true" >> $GITHUB_OUTPUT
             echo "frontend=true" >> $GITHUB_OUTPUT
             echo "airflow=true" >> $GITHUB_OUTPUT
             echo "dbt=true" >> $GITHUB_OUTPUT
           else
+            echo "🔍 Development mode - detecting changes for faster builds"
             echo "Comparing changes between ${{ steps.previous.outputs.tag }} and ${{ github.ref_name }}"
 
             # Check each service for changes
