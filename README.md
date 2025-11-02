@@ -2,6 +2,27 @@
 
 # Interview Analytics Platform
 
+<!-- Build & Tests -->
+[![CI Tests](https://github.com/nicosouv/hirewire/actions/workflows/ci-tests.yml/badge.svg?branch=main)](https://github.com/nicosouv/hirewire/actions/workflows/ci-tests.yml)
+[![Build & Push](https://github.com/nicosouv/hirewire/actions/workflows/build-and-push.yml/badge.svg)](https://github.com/nicosouv/hirewire/actions/workflows/build-and-push.yml)
+[![Airflow DAGs](https://github.com/nicosouv/hirewire/actions/workflows/test-airflow-dags.yml/badge.svg)](https://github.com/nicosouv/hirewire/actions/workflows/test-airflow-dags.yml)
+[![codecov](https://codecov.io/gh/nicosouv/hirewire/branch/main/graph/badge.svg)](https://codecov.io/gh/nicosouv/hirewire)
+
+<!-- Release & Deployment -->
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/nicosouv/hirewire)](https://github.com/nicosouv/hirewire/releases)
+[![Docker Pulls](https://img.shields.io/badge/docker-GHCR-2496ED?logo=docker&logoColor=white)](https://github.com/nicosouv/hirewire/pkgs/container/hirewire-backend)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+<!-- Tech Stack -->
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.120-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![DuckDB](https://img.shields.io/badge/DuckDB-Analytics-FFF000?logo=duckdb&logoColor=black)](https://duckdb.org/)
+[![Airflow](https://img.shields.io/badge/Airflow-3.1-017CEE?logo=apache-airflow&logoColor=white)](https://airflow.apache.org/)
+[![DBT](https://img.shields.io/badge/DBT-1.10-FF694B?logo=dbt&logoColor=white)](https://www.getdbt.com/)
+
 A modern full-stack application to track and analyze job interview processes. Built with a complete web interface, automated ETL pipelines, and advanced analytics capabilities.
 
 ## Key Features
