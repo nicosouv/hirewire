@@ -10,7 +10,7 @@ alembic==1.14.0
 
 # Validation and serialization
 pydantic==2.10.3
-pydantic-settings==2.6.1
+pydantic-settings==2.11.0
 email-validator==2.2.0
 
 # Security
