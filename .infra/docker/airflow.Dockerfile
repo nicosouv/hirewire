@@ -1,4 +1,4 @@
-FROM apache/airflow:3.1.0-python3.13
+FROM apache/airflow:3.1.1-python3.13
 
 USER root
 
@@ -23,11 +23,11 @@ RUN pip install --no-cache-dir \
     apache-airflow-providers-postgres==5.14.0 \
     apache-airflow-providers-celery==3.12.4 \
     apache-airflow-providers-docker==4.1.0 \
-    dbt-core==1.10.10 \
+    dbt-core==1.10.13 \
     dbt-postgres==1.9.0 \
     dbt-duckdb==1.9.4 \
     duckdb==1.3.1 \
-    psycopg2-binary==2.9.10 \
+    psycopg2-binary==2.9.11 \
     pandas==2.2.3 \
     sqlalchemy==2.0.36 \
     requests==2.32.3
