@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCompanies } from '../hooks/useCompanies';
 import { usePositions } from '../hooks/usePositions';
 import QuickAddModal from './QuickAddModal';
@@ -10,7 +10,9 @@ import {
   LogOut,
   User,
   Plus,
-  Zap
+  Zap,
+  Settings,
+  ChevronDown
 } from 'lucide-react';
 
 const PRO_TIPS = [
@@ -44,6 +46,8 @@ export default function NewLayout() {
   const { user, logout } = useAuth();
   const [proTip, setProTip] = useState(PRO_TIPS[0]);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const { data: companies } = useCompanies();
   const { data: positions } = usePositions();
 
@@ -54,6 +58,18 @@ export default function NewLayout() {
     }, 10000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    // Close user menu when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const navigation = [
@@ -99,23 +115,45 @@ export default function NewLayout() {
 
             {/* User menu */}
             {user && (
-              <div className="flex items-center gap-4">
-                <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-sand/50 rounded-xl">
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 px-4 py-2 bg-sand/50 rounded-xl hover:bg-sand/70 transition-all"
+                >
                   <div className="w-8 h-8 bg-gradient-to-br from-honey-400 to-honey-500 rounded-lg flex items-center justify-center">
                     <User className="w-4 h-4" />
                   </div>
-                  <div className="text-sm">
+                  <div className="hidden sm:block text-sm text-left">
                     <p className="font-semibold text-navy-900">{user.full_name}</p>
                     <p className="text-xs text-anthracite/60">{user.email}</p>
                   </div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-anthracite/70 hover:text-navy-900 hover:bg-sand/50 rounded-xl transition-all"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Logout</span>
+                  <ChevronDown className={`w-4 h-4 text-anthracite/60 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
                 </button>
+
+                {/* Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-sand/50 py-2 z-50">
+                    <Link
+                      to="/settings"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-anthracite/70 hover:bg-sand/50 hover:text-navy-900 transition-all"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Settings
+                    </Link>
+                    <div className="border-t border-sand/50 my-1"></div>
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition-all"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

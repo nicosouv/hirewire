@@ -60,3 +60,15 @@ class TokenData(BaseModel):
     user_id: Optional[int] = None
     email: Optional[str] = None
     is_airflow_admin: Optional[bool] = False
+
+
+class PasswordChange(BaseModel):
+    """Schema for changing password."""
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, max_length=100)
+
+
+class EmailChange(BaseModel):
+    """Schema for changing email."""
+    new_email: EmailStr
+    password: str = Field(..., min_length=1, description="Current password for verification")

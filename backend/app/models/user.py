@@ -26,6 +26,9 @@ class User(Base):
     # Relationships
     interview_processes = relationship("InterviewProcess", back_populates="user", cascade="all, delete-orphan")
     exports = relationship("Export", back_populates="user", cascade="all, delete-orphan")
+    profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    data_export_requests = relationship("DataExportRequest", back_populates="user", cascade="all, delete-orphan")
+    profile_audit_logs = relationship("ProfileAuditLog", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User {self.email}>"

@@ -13,7 +13,8 @@ from app.api.v1.endpoints import (
     interviews,
     outcomes,
     dashboard,
-    exports
+    exports,
+    profile
 )
 
 api_router = APIRouter()
@@ -35,3 +36,4 @@ api_router.include_router(interviews.router, prefix="/interviews", tags=["interv
 api_router.include_router(outcomes.router, prefix="/outcomes", tags=["outcomes"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(exports.router, prefix="/exports", tags=["exports"])
+api_router.include_router(profile.router, prefix="/profile", tags=["profile"])

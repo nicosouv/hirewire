@@ -3,6 +3,7 @@
 *.env
 !.env.example
 exports
+projects
 
 
 # DBT

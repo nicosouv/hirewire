@@ -15,7 +15,7 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse, Token, UserLogin
+from app.schemas.user import UserCreate, UserResponse, Token, UserLogin, PasswordChange, EmailChange
 
 router = APIRouter()
 
@@ -130,3 +130,61 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
 def test_token(current_user: User = Depends(get_current_user)):
     """Test if the token is valid."""
     return current_user
+
+
+@router.post("/change-password")
+def change_password(
+    password_data: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Change user password."""
+    from app.core.security import verify_password
+
+    # Verify current password
+    if not verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+
+    # Update password
+    current_user.hashed_password = get_password_hash(password_data.new_password)
+    db.commit()
+
+    return {"message": "Password updated successfully"}
+
+
+@router.post("/change-email")
+def change_email(
+    email_data: EmailChange,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Change user email."""
+    from app.core.security import verify_password
+
+    # Verify password
+    if not verify_password(email_data.password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password is incorrect"
+        )
+
+    # Check if new email is already taken
+    existing_user = db.query(User).filter(
+        User.email == email_data.new_email,
+        User.id != current_user.id
+    ).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already in use"
+        )
+
+    # Update email
+    current_user.email = email_data.new_email
+    db.commit()
+
+    return {"message": "Email updated successfully"}
