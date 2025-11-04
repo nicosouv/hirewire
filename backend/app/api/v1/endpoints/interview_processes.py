@@ -5,6 +5,7 @@ from typing import List
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.db.session import get_db
 from app.core.security import get_current_user
@@ -61,6 +62,14 @@ def create_interview_process(
     db.add(db_process)
     db.commit()
     db.refresh(db_process)
+
+    # Check and unlock achievements
+    db.execute(
+        text("SELECT * FROM hirewire.check_achievements(:user_id)"),
+        {"user_id": current_user.id}
+    )
+    db.commit()
+
     return db_process
 
 

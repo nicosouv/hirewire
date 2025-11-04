@@ -9,6 +9,7 @@ import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
 import PriorityActions from '../components/PriorityActions';
 import ExportModal from '../components/ExportModal';
+import GamificationWidget from '../components/GamificationWidget';
 import { TrendingUp, Briefcase, Calendar, Award, ArrowRight, Zap, Download } from 'lucide-react';
 
 // Dashboard overview page - v0.4.5 test
@@ -104,6 +105,9 @@ export default function NewDashboard() {
           <p className="text-xs text-honey-600/70 mt-2">days to outcome</p>
         </div>
       </div>
+
+      {/* Gamification Widget */}
+      <GamificationWidget />
 
       {/* Priority Actions */}
       <PriorityActions

@@ -5,9 +5,11 @@ from typing import List
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.db.session import get_db
 from app.models.interview import Interview
+from app.models.interview_process import InterviewProcess
 from app.schemas.interview import InterviewCreate, InterviewUpdate, InterviewResponse
 from app.services.process_status_service import ProcessStatusService
 
@@ -54,6 +56,15 @@ def create_interview(interview: InterviewCreate, db: Session = Depends(get_db)):
 
     # Update process status based on interview
     ProcessStatusService.update_process_status_from_interview(db, db_interview)
+
+    # Check and unlock achievements
+    process = db.query(InterviewProcess).filter(InterviewProcess.id == db_interview.process_id).first()
+    if process:
+        db.execute(
+            text("SELECT * FROM hirewire.check_achievements(:user_id)"),
+            {"user_id": process.user_id}
+        )
+        db.commit()
 
     return db_interview
 

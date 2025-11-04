@@ -29,6 +29,9 @@ class User(Base):
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     data_export_requests = relationship("DataExportRequest", back_populates="user", cascade="all, delete-orphan")
     profile_audit_logs = relationship("ProfileAuditLog", back_populates="user", cascade="all, delete-orphan")
+    achievements = relationship("UserAchievement", back_populates="user", cascade="all, delete-orphan")
+    stats = relationship("UserStats", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    activity_logs = relationship("ActivityLog", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User {self.email}>"
