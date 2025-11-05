@@ -91,7 +91,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.11'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ./backend/coverage.xml
           flags: backend
@@ -125,7 +125,7 @@ jobs:
           ./build.sh --frontend
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ./frontend/coverage/coverage-final.json
           flags: frontend
@@ -154,7 +154,7 @@ jobs:
           ./build.sh --airflow
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ./airflow/coverage.xml
           flags: airflow
