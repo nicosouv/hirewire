@@ -1,4 +1,12 @@
-from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, DateTime, Enum as SQLEnum
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Date,
+    Text,
+    ForeignKey,
+    DateTime,
+)
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -22,7 +30,9 @@ class Export(Base):
     __table_args__ = {"schema": "hirewire"}
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("hirewire.users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("hirewire.users.id", ondelete="CASCADE"), nullable=False
+    )
 
     # Export parameters
     start_date = Column(Date, nullable=False)
@@ -38,7 +48,9 @@ class Export(Base):
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
     completed_at = Column(DateTime)
 
     # Relationships

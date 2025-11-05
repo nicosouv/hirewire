@@ -2,6 +2,7 @@
 Company endpoints.
 CRUD operations for companies.
 """
+
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -13,11 +14,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[CompanySchema])
-def list_companies(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
+def list_companies(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """List all companies."""
     companies = db.query(Company).offset(skip).limit(limit).all()
     return companies
@@ -44,9 +41,7 @@ def create_company(company: CompanyCreate, db: Session = Depends(get_db)):
 
 @router.put("/{company_id}", response_model=CompanySchema)
 def update_company(
-    company_id: int,
-    company: CompanyUpdate,
-    db: Session = Depends(get_db)
+    company_id: int, company: CompanyUpdate, db: Session = Depends(get_db)
 ):
     """Update company."""
     db_company = db.query(Company).filter(Company.id == company_id).first()

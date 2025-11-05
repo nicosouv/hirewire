@@ -3,7 +3,7 @@ Gamification API Endpoints
 Achievements, badges, points, and leaderboard
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 from typing import List
@@ -20,7 +20,7 @@ from app.schemas.gamification import (
     GamificationDashboard,
     LeaderboardEntry,
     ActivityLogCreate,
-    AchievementUnlocked
+    AchievementUnlocked,
 )
 
 router = APIRouter()
@@ -46,6 +46,7 @@ def calculate_level(total_points: int) -> int:
     # Level 4: 900-1599 points
     # etc.
     import math
+
     return max(1, int(math.sqrt(total_points / 100)) + 1)
 
 
@@ -57,8 +58,7 @@ def points_for_next_level(current_level: int) -> int:
 
 @router.get("/dashboard", response_model=GamificationDashboard)
 def get_gamification_dashboard(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Get complete gamification dashboard for current user
@@ -75,14 +75,15 @@ def get_gamification_dashboard(
         db.refresh(stats)
 
     # Get all achievements
-    all_achievements = db.query(Achievement).filter(
-        Achievement.is_active == True
-    ).all()
+    all_achievements = db.query(Achievement).filter(Achievement.is_active.is_(True)).all()
 
     # Get user's unlocked achievements
-    unlocked = db.query(UserAchievement).filter(
-        UserAchievement.user_id == current_user.id
-    ).order_by(UserAchievement.unlocked_at.desc()).all()
+    unlocked = (
+        db.query(UserAchievement)
+        .filter(UserAchievement.user_id == current_user.id)
+        .order_by(UserAchievement.unlocked_at.desc())
+        .all()
+    )
 
     # Get recent achievements (last 5)
     recent_achievements = unlocked[:5]
@@ -93,7 +94,9 @@ def get_gamification_dashboard(
 
     # Calculate progress to next level
     next_level_points = points_for_next_level(stats.level)
-    current_level_points = points_for_next_level(stats.level - 1) if stats.level > 1 else 0
+    current_level_points = (
+        points_for_next_level(stats.level - 1) if stats.level > 1 else 0
+    )
     points_in_level = stats.total_points - current_level_points
     points_needed = next_level_points - current_level_points
     progress = (points_in_level / points_needed * 100) if points_needed > 0 else 0
@@ -105,14 +108,13 @@ def get_gamification_dashboard(
         next_level_points=next_level_points,
         all_achievements=all_achievements,
         unlocked_achievements=unlocked,
-        available_achievements=available
+        available_achievements=available,
     )
 
 
 @router.get("/stats", response_model=UserStatsResponse)
 def get_user_stats(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Get current user's stats"""
     stats = get_or_create_user_stats(db, current_user.id)
@@ -129,39 +131,41 @@ def get_user_stats(
 
 @router.get("/achievements", response_model=List[AchievementResponse])
 def get_all_achievements(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """Get all available achievements"""
-    achievements = db.query(Achievement).filter(
-        Achievement.is_active == True
-    ).order_by(Achievement.category, Achievement.points).all()
+    achievements = (
+        db.query(Achievement)
+        .filter(Achievement.is_active.is_(True))
+        .order_by(Achievement.category, Achievement.points)
+        .all()
+    )
 
     return achievements
 
 
 @router.get("/achievements/unlocked", response_model=List[UserAchievementResponse])
 def get_unlocked_achievements(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Get user's unlocked achievements"""
-    unlocked = db.query(UserAchievement).filter(
-        UserAchievement.user_id == current_user.id
-    ).order_by(UserAchievement.unlocked_at.desc()).all()
+    unlocked = (
+        db.query(UserAchievement)
+        .filter(UserAchievement.user_id == current_user.id)
+        .order_by(UserAchievement.unlocked_at.desc())
+        .all()
+    )
 
     return unlocked
 
 
 @router.post("/achievements/mark-seen")
 def mark_achievements_as_seen(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Mark all new achievements as seen"""
     db.query(UserAchievement).filter(
-        UserAchievement.user_id == current_user.id,
-        UserAchievement.is_new == True
+        UserAchievement.user_id == current_user.id, UserAchievement.is_new.is_(True)
     ).update({"is_new": False})
 
     db.commit()
@@ -171,8 +175,7 @@ def mark_achievements_as_seen(
 
 @router.post("/check-achievements", response_model=List[AchievementUnlocked])
 def check_and_unlock_achievements(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Check user's progress and unlock eligible achievements
@@ -181,25 +184,29 @@ def check_and_unlock_achievements(
     # Call the PostgreSQL function to check achievements
     result = db.execute(
         text("SELECT * FROM hirewire.check_achievements(:user_id)"),
-        {"user_id": current_user.id}
+        {"user_id": current_user.id},
     )
 
     newly_unlocked = []
     for row in result:
-        achievement = db.query(Achievement).filter(
-            Achievement.id == row.newly_unlocked_id
-        ).first()
+        achievement = (
+            db.query(Achievement)
+            .filter(Achievement.id == row.newly_unlocked_id)
+            .first()
+        )
 
         if achievement:
-            newly_unlocked.append(AchievementUnlocked(
-                achievement_id=achievement.id,
-                achievement_code=achievement.code,
-                name=achievement.name,
-                description=achievement.description,
-                icon=achievement.icon,
-                points=achievement.points,
-                rarity=achievement.rarity
-            ))
+            newly_unlocked.append(
+                AchievementUnlocked(
+                    achievement_id=achievement.id,
+                    achievement_code=achievement.code,
+                    name=achievement.name,
+                    description=achievement.description,
+                    icon=achievement.icon,
+                    points=achievement.points,
+                    rarity=achievement.rarity,
+                )
+            )
 
     return newly_unlocked
 
@@ -208,57 +215,67 @@ def check_and_unlock_achievements(
 def get_leaderboard(
     limit: int = 10,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get leaderboard (top users by points)
     """
     # Get top users
-    leaderboard_query = db.query(
-        UserStats,
-        User.first_name,
-        User.last_name,
-        func.rank().over(order_by=UserStats.total_points.desc()).label('rank')
-    ).join(User, UserStats.user_id == User.id).filter(
-        UserStats.total_points > 0
-    ).order_by(UserStats.total_points.desc()).limit(limit)
+    leaderboard_query = (
+        db.query(
+            UserStats,
+            User.first_name,
+            User.last_name,
+            func.rank().over(order_by=UserStats.total_points.desc()).label("rank"),
+        )
+        .join(User, UserStats.user_id == User.id)
+        .filter(UserStats.total_points > 0)
+        .order_by(UserStats.total_points.desc())
+        .limit(limit)
+    )
 
     leaderboard = []
     for stats, first_name, last_name, rank in leaderboard_query:
-        leaderboard.append(LeaderboardEntry(
-            rank=rank,
-            user_id=stats.user_id,
-            full_name=f"{first_name} {last_name}",
-            total_points=stats.total_points,
-            level=stats.level,
-            achievements_count=stats.achievements_count,
-            is_current_user=(stats.user_id == current_user.id)
-        ))
+        leaderboard.append(
+            LeaderboardEntry(
+                rank=rank,
+                user_id=stats.user_id,
+                full_name=f"{first_name} {last_name}",
+                total_points=stats.total_points,
+                level=stats.level,
+                achievements_count=stats.achievements_count,
+                is_current_user=(stats.user_id == current_user.id),
+            )
+        )
 
     # If current user is not in top, add them at the end
-    current_user_in_list = any(entry.user_id == current_user.id for entry in leaderboard)
+    current_user_in_list = any(
+        entry.user_id == current_user.id for entry in leaderboard
+    )
 
     if not current_user_in_list:
         current_stats = get_or_create_user_stats(db, current_user.id)
 
         # Get current user's rank
-        rank_query = db.query(
-            func.count(UserStats.id)
-        ).filter(
-            UserStats.total_points > current_stats.total_points
-        ).scalar()
+        rank_query = (
+            db.query(func.count(UserStats.id))
+            .filter(UserStats.total_points > current_stats.total_points)
+            .scalar()
+        )
 
         current_rank = (rank_query or 0) + 1
 
-        leaderboard.append(LeaderboardEntry(
-            rank=current_rank,
-            user_id=current_user.id,
-            full_name=current_user.full_name,
-            total_points=current_stats.total_points,
-            level=current_stats.level,
-            achievements_count=current_stats.achievements_count,
-            is_current_user=True
-        ))
+        leaderboard.append(
+            LeaderboardEntry(
+                rank=current_rank,
+                user_id=current_user.id,
+                full_name=current_user.full_name,
+                total_points=current_stats.total_points,
+                level=current_stats.level,
+                achievements_count=current_stats.achievements_count,
+                is_current_user=True,
+            )
+        )
 
     return leaderboard
 
@@ -267,7 +284,7 @@ def get_leaderboard(
 def log_activity(
     activity: ActivityLogCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Log user activity for streak calculation
@@ -278,11 +295,15 @@ def log_activity(
     activity_date = activity.activity_date or date.today()
 
     # Check if activity already logged for today
-    existing = db.query(ActivityLog).filter(
-        ActivityLog.user_id == current_user.id,
-        ActivityLog.activity_date == activity_date,
-        ActivityLog.activity_type == activity.activity_type
-    ).first()
+    existing = (
+        db.query(ActivityLog)
+        .filter(
+            ActivityLog.user_id == current_user.id,
+            ActivityLog.activity_date == activity_date,
+            ActivityLog.activity_type == activity.activity_type,
+        )
+        .first()
+    )
 
     if existing:
         return {"message": "Activity already logged"}
@@ -292,7 +313,7 @@ def log_activity(
         user_id=current_user.id,
         activity_type=activity.activity_type,
         activity_date=activity_date,
-        activity_metadata=activity.activity_metadata
+        activity_metadata=activity.activity_metadata,
     )
     db.add(log)
 
@@ -324,11 +345,11 @@ def log_activity(
     # Check for newly unlocked achievements
     newly_unlocked = db.execute(
         text("SELECT * FROM hirewire.check_achievements(:user_id)"),
-        {"user_id": current_user.id}
+        {"user_id": current_user.id},
     ).fetchall()
 
     return {
         "message": "Activity logged",
         "current_streak": stats.current_streak,
-        "newly_unlocked": len(newly_unlocked)
+        "newly_unlocked": len(newly_unlocked),
     }

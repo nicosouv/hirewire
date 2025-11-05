@@ -1,8 +1,8 @@
 """
 Airflow-specific API endpoints for Nginx auth_request integration.
 """
+
 from typing import Dict
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -22,7 +22,7 @@ def require_airflow_admin(current_user: User = Depends(get_current_user)) -> Use
     if not current_user.is_airflow_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Airflow admin privileges required"
+            detail="Airflow admin privileges required",
         )
     return current_user
 
@@ -40,7 +40,7 @@ def validate_airflow_access(current_user: User = Depends(get_current_user)):
     if not current_user.is_airflow_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Airflow admin privileges required"
+            detail="Airflow admin privileges required",
         )
 
     # Return 200 OK with minimal response for Nginx
@@ -49,8 +49,7 @@ def validate_airflow_access(current_user: User = Depends(get_current_user)):
 
 @router.post("/tasks/update-past-interviews", response_model=Dict)
 def update_past_scheduled_interviews(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_airflow_admin)
+    db: Session = Depends(get_db), current_user: User = Depends(require_airflow_admin)
 ):
     """
     Update interviews from 'scheduled' to 'completed' when their scheduled_date has passed.
@@ -64,12 +63,14 @@ def update_past_scheduled_interviews(
         - stats: Current interview statistics
     """
     # Step 1: Check how many interviews need updating
-    count_query = text("""
+    count_query = text(
+        """
         SELECT COUNT(*)
         FROM hirewire.interviews
         WHERE scheduled_date < CURRENT_TIMESTAMP
           AND status = 'scheduled'
-    """)
+    """
+    )
     count_to_update = db.execute(count_query).scalar()
 
     if count_to_update == 0:
@@ -77,11 +78,12 @@ def update_past_scheduled_interviews(
             "message": "No past scheduled interviews to update",
             "updated_count": 0,
             "interviews": [],
-            "stats": get_interview_stats(db)
+            "stats": get_interview_stats(db),
         }
 
     # Step 2: Get details of interviews being updated
-    details_query = text("""
+    details_query = text(
+        """
         SELECT
             i.id,
             c.name as company_name,
@@ -96,18 +98,21 @@ def update_past_scheduled_interviews(
         WHERE i.scheduled_date < CURRENT_TIMESTAMP
           AND i.status = 'scheduled'
         ORDER BY i.scheduled_date
-    """)
+    """
+    )
     interviews_to_update = db.execute(details_query).fetchall()
 
     # Step 3: Perform the update
-    update_query = text("""
+    update_query = text(
+        """
         UPDATE hirewire.interviews
         SET
             status = 'completed',
             updated_at = CURRENT_TIMESTAMP
         WHERE scheduled_date < CURRENT_TIMESTAMP
           AND status = 'scheduled'
-    """)
+    """
+    )
     db.execute(update_query)
     db.commit()
 
@@ -119,7 +124,7 @@ def update_past_scheduled_interviews(
             "position_title": row[2],
             "interview_type": row[3],
             "scheduled_date": row[4].isoformat() if row[4] else None,
-            "days_past": int(row[5]) if row[5] else 0
+            "days_past": int(row[5]) if row[5] else 0,
         }
         for row in interviews_to_update
     ]
@@ -128,34 +133,35 @@ def update_past_scheduled_interviews(
         "message": f"Successfully updated {len(updated_interviews)} interviews to 'completed' status",
         "updated_count": len(updated_interviews),
         "interviews": updated_interviews,
-        "stats": get_interview_stats(db)
+        "stats": get_interview_stats(db),
     }
 
 
 def get_interview_stats(db: Session) -> Dict:
     """Get current interview statistics."""
-    stats_query = text("""
+    stats_query = text(
+        """
         SELECT
             COUNT(*) as total_interviews,
             COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled,
             COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
             COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled
         FROM hirewire.interviews
-    """)
+    """
+    )
     stats = db.execute(stats_query).fetchone()
 
     return {
         "total": stats[0] if stats else 0,
         "scheduled": stats[1] if stats else 0,
         "completed": stats[2] if stats else 0,
-        "cancelled": stats[3] if stats else 0
+        "cancelled": stats[3] if stats else 0,
     }
 
 
 @router.post("/tasks/update-process-status", response_model=Dict)
 def update_process_status(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_airflow_admin)
+    db: Session = Depends(get_db), current_user: User = Depends(require_airflow_admin)
 ):
     """
     Automatically update process status based on interview activity.
@@ -185,7 +191,8 @@ def update_process_status(
     updates = []
 
     # Step 1: Update processes to 'screening' based on scheduled screening interviews
-    screening_query = text("""
+    screening_query = text(
+        """
         UPDATE hirewire.interview_processes
         SET
             status = 'screening',
@@ -205,17 +212,21 @@ def update_process_status(
             )
         )
         RETURNING id
-    """)
+    """
+    )
     screening_updated = db.execute(screening_query).fetchall()
     if screening_updated:
-        updates.append({
-            "transition": "applied → screening",
-            "count": len(screening_updated),
-            "process_ids": [row[0] for row in screening_updated]
-        })
+        updates.append(
+            {
+                "transition": "applied → screening",
+                "count": len(screening_updated),
+                "process_ids": [row[0] for row in screening_updated],
+            }
+        )
 
     # Step 2: Update processes to 'interviewing' based on technical/multiple interviews
-    interviewing_query = text("""
+    interviewing_query = text(
+        """
         UPDATE hirewire.interview_processes
         SET
             status = 'interviewing',
@@ -229,8 +240,8 @@ def update_process_status(
                 EXISTS (
                     SELECT 1 FROM hirewire.interviews i
                     WHERE i.process_id = ip.id
-                    AND i.interview_type IN ('technical_interview', 'coding_challenge', 'technical_video', 'system_design', 'pair_programming')
-                    AND (i.status = 'scheduled' AND i.scheduled_date >= CURRENT_TIMESTAMP - INTERVAL '1 day' OR i.status = 'completed')
+                    AND i.interview_type IN ('technical_interview', 'coding_challenge', 'technical_video', 'system_design', 'pair_programming')  # noqa: E501
+                    AND (i.status = 'scheduled' AND i.scheduled_date >= CURRENT_TIMESTAMP - INTERVAL '1 day' OR i.status = 'completed')  # noqa: E501
                 )
                 OR
                 -- Has multiple completed interviews
@@ -254,17 +265,21 @@ def update_process_status(
             )
         )
         RETURNING id
-    """)
+    """
+    )
     interviewing_updated = db.execute(interviewing_query).fetchall()
     if interviewing_updated:
-        updates.append({
-            "transition": "applied/screening → interviewing",
-            "count": len(interviewing_updated),
-            "process_ids": [row[0] for row in interviewing_updated]
-        })
+        updates.append(
+            {
+                "transition": "applied/screening → interviewing",
+                "count": len(interviewing_updated),
+                "process_ids": [row[0] for row in interviewing_updated],
+            }
+        )
 
     # Step 3: Update processes to 'final_round' based on interview patterns
-    final_round_query = text("""
+    final_round_query = text(
+        """
         UPDATE hirewire.interview_processes
         SET
             status = 'final_round',
@@ -278,7 +293,7 @@ def update_process_status(
                 EXISTS (
                     SELECT 1 FROM hirewire.interviews i
                     WHERE i.process_id = ip.id
-                    AND i.interview_type IN ('final_interview', 'manager_interview', 'cultural_fit', 'executive_interview')
+                    AND i.interview_type IN ('final_interview', 'manager_interview', 'cultural_fit', 'executive_interview')  # noqa: E501
                     AND (i.status = 'scheduled' OR i.status = 'completed')
                 )
                 OR
@@ -295,14 +310,17 @@ def update_process_status(
             )
         )
         RETURNING id
-    """)
+    """
+    )
     final_round_updated = db.execute(final_round_query).fetchall()
     if final_round_updated:
-        updates.append({
-            "transition": "interviewing → final_round",
-            "count": len(final_round_updated),
-            "process_ids": [row[0] for row in final_round_updated]
-        })
+        updates.append(
+            {
+                "transition": "interviewing → final_round",
+                "count": len(final_round_updated),
+                "process_ids": [row[0] for row in final_round_updated],
+            }
+        )
 
     # Commit all updates
     db.commit()
@@ -311,7 +329,8 @@ def update_process_status(
     stats_after = get_process_stats(db)
 
     # Identify stale processes that may need manual review
-    stale_query = text("""
+    stale_query = text(
+        """
         SELECT
             c.name as company,
             jp.title as position,
@@ -341,12 +360,13 @@ def update_process_status(
             OR
             -- Screening/interviewing with no recent activity
             (ip.status IN ('screening', 'interviewing') AND
-             (SELECT MAX(scheduled_date) FROM hirewire.interviews WHERE process_id = ip.id) < CURRENT_DATE - INTERVAL '10 days')
+             (SELECT MAX(scheduled_date) FROM hirewire.interviews WHERE process_id = ip.id) < CURRENT_DATE - INTERVAL '10 days')  # noqa: E501
         )
         GROUP BY ip.id, c.name, jp.title, ip.status, ip.application_date
         ORDER BY days_since_application DESC
         LIMIT 10
-    """)
+    """
+    )
     stale_processes = db.execute(stale_query).fetchall()
 
     stale_list = [
@@ -359,7 +379,7 @@ def update_process_status(
             "days_since_application": row[5],
             "total_interviews": row[6],
             "last_interview_date": row[7].isoformat() if row[7] else None,
-            "days_since_last_interview": row[8]
+            "days_since_last_interview": row[8],
         }
         for row in stale_processes
     ]
@@ -374,13 +394,14 @@ def update_process_status(
         "stats_before": stats_before,
         "stats_after": stats_after,
         "stale_processes": stale_list,
-        "stale_count": len(stale_list)
+        "stale_count": len(stale_list),
     }
 
 
 def get_process_stats(db: Session) -> Dict:
     """Get current process status distribution (excluding finalized processes)."""
-    stats_query = text("""
+    stats_query = text(
+        """
         SELECT
             status,
             COUNT(*) as count
@@ -392,23 +413,20 @@ def get_process_stats(db: Session) -> Dict:
         )
         GROUP BY status
         ORDER BY count DESC
-    """)
+    """
+    )
     stats = db.execute(stats_query).fetchall()
 
     # Convert to dict format
     status_counts = {row[0]: row[1] for row in stats}
     total = sum(status_counts.values())
 
-    return {
-        "total": total,
-        "by_status": status_counts
-    }
+    return {"total": total, "by_status": status_counts}
 
 
 @router.post("/tasks/detect-ghosted-processes", response_model=Dict)
 def detect_ghosted_processes(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_airflow_admin)
+    db: Session = Depends(get_db), current_user: User = Depends(require_airflow_admin)
 ):
     """
     Auto-detect and mark ghosted processes based on inactivity patterns.
@@ -433,7 +451,8 @@ def detect_ghosted_processes(
     stats_before = get_process_stats(db)
 
     # Step 1: Detect processes that should be marked as ghosted
-    detect_query = text("""
+    detect_query = text(
+        """
         WITH process_activity AS (
             SELECT
                 ip.id,
@@ -454,7 +473,7 @@ def detect_ghosted_processes(
             JOIN hirewire.companies c ON jp.company_id = c.id
             LEFT JOIN hirewire.interviews i ON ip.id = i.process_id
             WHERE ip.id NOT IN (SELECT DISTINCT process_id FROM hirewire.interview_outcomes WHERE process_id IS NOT NULL)
-            AND ip.status NOT IN ('ghosted', 'rejected', 'accepted', 'offer', 'withdrew')
+            AND ip.status NOT IN ('ghosted', 'rejected', 'accepted', 'offer', 'withdrew')  # noqa: E501
             GROUP BY ip.id, ip.status, ip.application_date, c.name, jp.title
         )
         SELECT
@@ -488,7 +507,8 @@ def detect_ghosted_processes(
             (status = 'applied' AND days_since_application > 30 AND total_interviews = 0)
         )
         ORDER BY days_since_application DESC
-    """)
+    """
+    )
 
     ghosted_candidates = db.execute(detect_query).fetchall()
 
@@ -498,22 +518,24 @@ def detect_ghosted_processes(
             "ghosted_count": 0,
             "ghosted_processes": [],
             "stats_before": stats_before,
-            "stats_after": stats_before
+            "stats_after": stats_before,
         }
 
     # Step 2: Mark processes as ghosted
     process_ids = [row[0] for row in ghosted_candidates]
 
-    update_query = text("""
+    update_query = text(
+        """
         UPDATE hirewire.interview_processes
         SET
             status = 'ghosted',
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ANY(:process_ids)
         RETURNING id
-    """)
+    """
+    )
 
-    updated = db.execute(update_query, {"process_ids": process_ids}).fetchall()
+    db.execute(update_query, {"process_ids": process_ids}).fetchall()
 
     # Step 3: Create ghosted outcomes
     for row in ghosted_candidates:
@@ -522,19 +544,26 @@ def detect_ghosted_processes(
 
         # Check if outcome already exists
         existing_outcome = db.execute(
-            text("SELECT id FROM hirewire.interview_outcomes WHERE process_id = :process_id"),
-            {"process_id": process_id}
+            text(
+                "SELECT id FROM hirewire.interview_outcomes WHERE process_id = :process_id"
+            ),
+            {"process_id": process_id},
         ).fetchone()
 
         if not existing_outcome:
-            outcome_query = text("""
-                INSERT INTO hirewire.interview_outcomes (process_id, outcome, outcome_date, notes, created_at, updated_at)
+            outcome_query = text(
+                """
+                INSERT INTO hirewire.interview_outcomes (process_id, outcome, outcome_date, notes, created_at, updated_at)  # noqa: E501
                 VALUES (:process_id, 'ghosted', CURRENT_DATE, :notes, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            """)
-            db.execute(outcome_query, {
-                "process_id": process_id,
-                "notes": f"Auto-detected ghosting: {ghosting_reason}"
-            })
+            """
+            )
+            db.execute(
+                outcome_query,
+                {
+                    "process_id": process_id,
+                    "notes": f"Auto-detected ghosting: {ghosting_reason}",
+                },
+            )
 
     db.commit()
 
@@ -553,7 +582,7 @@ def detect_ghosted_processes(
             "last_interview_date": row[6].isoformat() if row[6] else None,
             "days_since_application": row[7],
             "days_since_last_interview": row[8] if row[8] else None,
-            "ghosting_reason": row[9]
+            "ghosting_reason": row[9],
         }
         for row in ghosted_candidates
     ]
@@ -563,14 +592,13 @@ def detect_ghosted_processes(
         "ghosted_count": len(ghosted_list),
         "ghosted_processes": ghosted_list,
         "stats_before": stats_before,
-        "stats_after": stats_after
+        "stats_after": stats_after,
     }
 
 
 @router.post("/tasks/verify-gamification", response_model=Dict)
 def verify_gamification_integrity(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_airflow_admin)
+    db: Session = Depends(get_db), current_user: User = Depends(require_airflow_admin)
 ):
     """
     Verify gamification data integrity for all users.
@@ -591,7 +619,8 @@ def verify_gamification_integrity(
         - users_to_fix: List of users requiring recalculation
     """
     # Get all users with stats
-    users_query = text("""
+    users_query = text(
+        """
         SELECT
             u.id,
             u.email,
@@ -604,7 +633,8 @@ def verify_gamification_integrity(
         FROM hirewire.users u
         LEFT JOIN hirewire.user_stats us ON u.id = us.user_id
         ORDER BY u.id
-    """)
+    """
+    )
     users = db.execute(users_query).fetchall()
 
     total_users = len(users)
@@ -613,7 +643,7 @@ def verify_gamification_integrity(
         "counter_errors": [],
         "missing_achievements": [],
         "point_errors": [],
-        "level_errors": []
+        "level_errors": [],
     }
 
     for user_row in users:
@@ -624,12 +654,13 @@ def verify_gamification_integrity(
         stored_apps = user_row[4]
         stored_interviews = user_row[5]
         stored_offers = user_row[6]
-        stored_achievements_count = user_row[7]
+        # stored_achievements_count = user_row[7]  # Not currently used in checks
 
         user_errors = []
 
         # Check 1: Verify counter consistency
-        actual_counts_query = text("""
+        actual_counts_query = text(
+            """
             SELECT
                 COUNT(DISTINCT ip.id) as actual_applications,
                 COUNT(DISTINCT i.id) as actual_interviews,
@@ -639,23 +670,39 @@ def verify_gamification_integrity(
             LEFT JOIN hirewire.interviews i ON ip.id = i.process_id
             LEFT JOIN hirewire.interview_outcomes io ON ip.id = io.process_id
             WHERE u.id = :user_id
-        """)
+        """
+        )
         actual_counts = db.execute(actual_counts_query, {"user_id": user_id}).fetchone()
         actual_apps = actual_counts[0] or 0
         actual_interviews = actual_counts[1] or 0
         actual_offers = actual_counts[2] or 0
 
-        if stored_apps != actual_apps or stored_interviews != actual_interviews or stored_offers != actual_offers:
-            error_details["counter_errors"].append({
-                "user_id": user_id,
-                "email": user_email,
-                "stored": {"apps": stored_apps, "interviews": stored_interviews, "offers": stored_offers},
-                "actual": {"apps": actual_apps, "interviews": actual_interviews, "offers": actual_offers}
-            })
+        if (
+            stored_apps != actual_apps
+            or stored_interviews != actual_interviews
+            or stored_offers != actual_offers
+        ):
+            error_details["counter_errors"].append(
+                {
+                    "user_id": user_id,
+                    "email": user_email,
+                    "stored": {
+                        "apps": stored_apps,
+                        "interviews": stored_interviews,
+                        "offers": stored_offers,
+                    },
+                    "actual": {
+                        "apps": actual_apps,
+                        "interviews": actual_interviews,
+                        "offers": actual_offers,
+                    },
+                }
+            )
             user_errors.append("counter_mismatch")
 
         # Check 2: Verify missing achievements
-        missing_achievements_query = text("""
+        missing_achievements_query = text(
+            """
             SELECT
                 a.id,
                 a.code,
@@ -677,73 +724,86 @@ def verify_gamification_integrity(
                 (a.criteria->>'type' = 'count' AND a.criteria->>'metric' = 'offers'
                  AND (a.criteria->>'target')::INTEGER <= :actual_offers)
             )
-        """)
-        missing = db.execute(missing_achievements_query, {
-            "user_id": user_id,
-            "actual_apps": actual_apps,
-            "actual_interviews": actual_interviews,
-            "actual_offers": actual_offers
-        }).fetchall()
+        """
+        )
+        missing = db.execute(
+            missing_achievements_query,
+            {
+                "user_id": user_id,
+                "actual_apps": actual_apps,
+                "actual_interviews": actual_interviews,
+                "actual_offers": actual_offers,
+            },
+        ).fetchall()
 
         if missing:
-            error_details["missing_achievements"].append({
-                "user_id": user_id,
-                "email": user_email,
-                "missing_count": len(missing),
-                "achievements": [
-                    {"code": row[1], "name": row[2], "points": row[3]}
-                    for row in missing
-                ]
-            })
+            error_details["missing_achievements"].append(
+                {
+                    "user_id": user_id,
+                    "email": user_email,
+                    "missing_count": len(missing),
+                    "achievements": [
+                        {"code": row[1], "name": row[2], "points": row[3]}
+                        for row in missing
+                    ],
+                }
+            )
             user_errors.append("missing_achievements")
 
         # Check 3: Verify total points
-        actual_points_query = text("""
+        actual_points_query = text(
+            """
             SELECT COALESCE(SUM(a.points), 0)
             FROM hirewire.user_achievements ua
             JOIN hirewire.achievements a ON ua.achievement_id = a.id
             WHERE ua.user_id = :user_id
-        """)
-        actual_points = db.execute(actual_points_query, {"user_id": user_id}).scalar() or 0
+        """
+        )
+        actual_points = (
+            db.execute(actual_points_query, {"user_id": user_id}).scalar() or 0
+        )
 
         if stored_points != actual_points:
-            error_details["point_errors"].append({
-                "user_id": user_id,
-                "email": user_email,
-                "stored_points": stored_points,
-                "actual_points": actual_points,
-                "difference": stored_points - actual_points
-            })
+            error_details["point_errors"].append(
+                {
+                    "user_id": user_id,
+                    "email": user_email,
+                    "stored_points": stored_points,
+                    "actual_points": actual_points,
+                    "difference": stored_points - actual_points,
+                }
+            )
             user_errors.append("point_mismatch")
 
         # Check 4: Verify level calculation
         # Level = floor(sqrt(points / 100)) + 1
         import math
+
         expected_level = max(1, int(math.sqrt(actual_points / 100)) + 1)
 
         if stored_level != expected_level:
-            error_details["level_errors"].append({
-                "user_id": user_id,
-                "email": user_email,
-                "stored_level": stored_level,
-                "expected_level": expected_level,
-                "points": actual_points
-            })
+            error_details["level_errors"].append(
+                {
+                    "user_id": user_id,
+                    "email": user_email,
+                    "stored_level": stored_level,
+                    "expected_level": expected_level,
+                    "points": actual_points,
+                }
+            )
             user_errors.append("level_mismatch")
 
         if user_errors:
-            users_with_errors.append({
-                "user_id": user_id,
-                "email": user_email,
-                "error_types": user_errors
-            })
+            users_with_errors.append(
+                {"user_id": user_id, "email": user_email, "error_types": user_errors}
+            )
 
     # Calculate totals
     total_errors = (
-        len(error_details["counter_errors"]) +
-        len(error_details["missing_achievements"]) +
-        len(error_details["point_errors"]) +
-        len(error_details["level_errors"])
+        len(error_details["counter_errors"])
+        + len(error_details["missing_achievements"])
+        + len(error_details["point_errors"])
+        + len(error_details["level_errors"])
     )
 
     # Extract unique user IDs to fix
@@ -758,11 +818,11 @@ def verify_gamification_integrity(
             "counter_errors": len(error_details["counter_errors"]),
             "missing_achievements": len(error_details["missing_achievements"]),
             "point_errors": len(error_details["point_errors"]),
-            "level_errors": len(error_details["level_errors"])
+            "level_errors": len(error_details["level_errors"]),
         },
         "users_with_errors": users_with_errors,
         "error_details": error_details,
-        "users_to_fix": users_to_fix
+        "users_to_fix": users_to_fix,
     }
 
 
@@ -771,7 +831,7 @@ def recalculate_user_gamification(
     user_id: int,
     strategy: str = "incremental",  # 'full_reset' or 'incremental'
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_airflow_admin)
+    current_user: User = Depends(require_airflow_admin),
 ):
     """
     Recalculate gamification data for a specific user.
@@ -805,19 +865,20 @@ def recalculate_user_gamification(
     # Verify user exists
     user_check = db.execute(
         text("SELECT id, email FROM hirewire.users WHERE id = :user_id"),
-        {"user_id": user_id}
+        {"user_id": user_id},
     ).fetchone()
 
     if not user_check:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {user_id} not found"
+            detail=f"User with id {user_id} not found",
         )
 
     user_email = user_check[1]
 
     # Get stats before
-    before_stats_query = text("""
+    before_stats_query = text(
+        """
         SELECT
             COALESCE(total_points, 0) as total_points,
             COALESCE(level, 1) as level,
@@ -827,7 +888,8 @@ def recalculate_user_gamification(
             COALESCE(achievements_count, 0) as achievements_count
         FROM hirewire.user_stats
         WHERE user_id = :user_id
-    """)
+    """
+    )
     before_stats = db.execute(before_stats_query, {"user_id": user_id}).fetchone()
 
     before = {
@@ -836,19 +898,22 @@ def recalculate_user_gamification(
         "applications_count": before_stats[2] if before_stats else 0,
         "interviews_count": before_stats[3] if before_stats else 0,
         "offers_count": before_stats[4] if before_stats else 0,
-        "achievements_count": before_stats[5] if before_stats else 0
+        "achievements_count": before_stats[5] if before_stats else 0,
     }
 
     changes = []
 
     if strategy == "full_reset":
         # Step 1: Delete all user achievements
-        delete_achievements = text("DELETE FROM hirewire.user_achievements WHERE user_id = :user_id")
+        delete_achievements = text(
+            "DELETE FROM hirewire.user_achievements WHERE user_id = :user_id"
+        )
         deleted_count = db.execute(delete_achievements, {"user_id": user_id}).rowcount
         changes.append(f"Deleted {deleted_count} achievements")
 
         # Step 2: Reset user stats (keep record but reset values)
-        reset_stats = text("""
+        reset_stats = text(
+            """
             INSERT INTO hirewire.user_stats (
                 user_id, total_points, level, applications_count, interviews_count,
                 offers_count, achievements_count, current_streak, longest_streak
@@ -864,12 +929,14 @@ def recalculate_user_gamification(
                 current_streak = 0,
                 longest_streak = 0,
                 updated_at = CURRENT_TIMESTAMP
-        """)
+        """
+        )
         db.execute(reset_stats, {"user_id": user_id})
         changes.append("Reset all stats to zero")
 
     # Step 3: Recalculate counters from raw data
-    recalc_counters = text("""
+    recalc_counters = text(
+        """
         WITH counts AS (
             SELECT
                 COUNT(DISTINCT ip.id) as apps,
@@ -890,24 +957,30 @@ def recalculate_user_gamification(
         FROM counts
         WHERE us.user_id = :user_id
         RETURNING applications_count, interviews_count, offers_count
-    """)
+    """
+    )
     new_counts = db.execute(recalc_counters, {"user_id": user_id}).fetchone()
-    changes.append(f"Recalculated counters: apps={new_counts[0]}, interviews={new_counts[1]}, offers={new_counts[2]}")
+    changes.append(
+        f"Recalculated counters: apps={new_counts[0]}, interviews={new_counts[1]}, offers={new_counts[2]}"
+    )
 
     # Step 4: Unlock all eligible achievements
     unlock_result = db.execute(
         text("SELECT * FROM hirewire.check_achievements(:user_id)"),
-        {"user_id": user_id}
+        {"user_id": user_id},
     ).fetchall()
 
     if unlock_result:
         unlocked_codes = [row[1] for row in unlock_result]
-        changes.append(f"Unlocked {len(unlocked_codes)} achievements: {', '.join(unlocked_codes)}")
+        changes.append(
+            f"Unlocked {len(unlocked_codes)} achievements: {', '.join(unlocked_codes)}"
+        )
     else:
         changes.append("No new achievements unlocked")
 
     # Step 5: Recalculate total points from achievements
-    recalc_points = text("""
+    recalc_points = text(
+        """
         WITH achievement_points AS (
             SELECT COALESCE(SUM(a.points), 0) as total
             FROM hirewire.user_achievements ua
@@ -926,19 +999,25 @@ def recalculate_user_gamification(
             updated_at = CURRENT_TIMESTAMP
         WHERE us.user_id = :user_id
         RETURNING total_points, achievements_count
-    """)
+    """
+    )
     new_points = db.execute(recalc_points, {"user_id": user_id}).fetchone()
-    changes.append(f"Recalculated points: {new_points[0]} XP from {new_points[1]} achievements")
+    changes.append(
+        f"Recalculated points: {new_points[0]} XP from {new_points[1]} achievements"
+    )
 
     # Step 6: Recalculate level
     import math
+
     new_level = max(1, int(math.sqrt(new_points[0] / 100)) + 1)
 
-    update_level = text("""
+    update_level = text(
+        """
         UPDATE hirewire.user_stats
         SET level = :new_level, updated_at = CURRENT_TIMESTAMP
         WHERE user_id = :user_id
-    """)
+    """
+    )
     db.execute(update_level, {"user_id": user_id, "new_level": new_level})
     changes.append(f"Updated level to {new_level}")
 
@@ -953,11 +1032,11 @@ def recalculate_user_gamification(
         "applications_count": after_stats[2] if after_stats else 0,
         "interviews_count": after_stats[3] if after_stats else 0,
         "offers_count": after_stats[4] if after_stats else 0,
-        "achievements_count": after_stats[5] if after_stats else 0
+        "achievements_count": after_stats[5] if after_stats else 0,
     }
 
     return {
-        "message": f"Successfully recalculated gamification data for user {user_id} ({user_email}) using {strategy} strategy",
+        "message": f"Successfully recalculated gamification data for user {user_id} ({user_email}) using {strategy} strategy",  # noqa: E501
         "user_id": user_id,
         "user_email": user_email,
         "strategy": strategy,
@@ -967,6 +1046,7 @@ def recalculate_user_gamification(
         "changes_summary": {
             "points_change": after["total_points"] - before["total_points"],
             "level_change": after["level"] - before["level"],
-            "achievements_change": after["achievements_count"] - before["achievements_count"]
-        }
+            "achievements_change": after["achievements_count"]
+            - before["achievements_count"],
+        },
     }

@@ -10,9 +10,11 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 
 from app.main import app
-from app.db.session import get_db, Base
+from app.db.session import get_db
+from app.db.base import Base
 from app.core.security import create_access_token
-from app.models import User, Company, JobPosition, InterviewProcess, Interview
+from app.models.user import User
+from app.models import Company, JobPosition, InterviewProcess, Interview
 
 # Test database configuration
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -31,8 +33,21 @@ def db() -> Generator[Session, None, None]:
     Create a fresh database for each test.
     Uses in-memory SQLite for speed.
     """
-    # Create tables
-    Base.metadata.create_all(bind=engine)
+    # Remove schema from all tables for SQLite compatibility
+    # Also skip profile tables that use PostgreSQL-specific types (ARRAY)
+    tables_to_create = []
+    for table in Base.metadata.tables.values():
+        table.schema = None
+        # Skip tables with PostgreSQL-specific types (ARRAY, JSONB)
+        skip_tables = [
+            'user_profiles', 'data_export_requests', 'profile_audit_logs',  # ARRAY
+            'achievements', 'user_achievements', 'user_stats', 'activity_logs', 'activity_log'  # JSONB
+        ]
+        if table.name not in skip_tables:
+            tables_to_create.append(table)
+
+    # Create tables (excluding profile tables with PostgreSQL ARRAY types)
+    Base.metadata.create_all(bind=engine, tables=tables_to_create, checkfirst=True)
 
     # Create session
     session = TestingSessionLocal()
@@ -161,11 +176,12 @@ def test_position(db: Session, test_company: Company) -> JobPosition:
         company_id=test_company.id,
         title="Senior Software Engineer",
         department="Engineering",
-        location="Paris",
-        job_type="full_time",
+        level="senior",
+        employment_type="full_time",
+        remote_policy="hybrid",
         salary_min=60000,
         salary_max=80000,
-        description="Great opportunity",
+        currency="USD",
     )
     db.add(position)
     db.commit()

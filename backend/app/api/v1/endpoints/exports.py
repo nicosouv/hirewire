@@ -1,12 +1,12 @@
 """
 Export endpoints for generating and managing data exports.
 """
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 import httpx
 import os
-from datetime import datetime
 
 from app.db.session import get_db
 from app.core.security import get_current_user
@@ -26,7 +26,7 @@ AIRFLOW_PASSWORD = os.getenv("AIRFLOW_PASSWORD", "admin")
 async def request_export(
     export_in: ExportCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Request a new export. This will:
@@ -43,7 +43,7 @@ async def request_export(
         end_date=export_in.end_date,
         format=export_in.format,
         recipient_email=export_in.recipient_email,
-        status=ExportStatus.PENDING
+        status=ExportStatus.PENDING,
     )
     db.add(db_export)
     db.commit()
@@ -62,10 +62,10 @@ async def request_export(
                         "start_date": export_in.start_date.isoformat(),
                         "end_date": export_in.end_date.isoformat(),
                         "format": export_in.format.value,
-                        "recipient_email": export_in.recipient_email
+                        "recipient_email": export_in.recipient_email,
                     }
                 },
-                timeout=10.0
+                timeout=10.0,
             )
 
             if response.status_code == 200:
@@ -77,7 +77,9 @@ async def request_export(
             else:
                 # Failed to trigger DAG
                 db_export.status = ExportStatus.FAILED
-                db_export.error_message = f"Failed to trigger Airflow DAG: {response.text}"
+                db_export.error_message = (
+                    f"Failed to trigger Airflow DAG: {response.text}"
+                )
                 db.commit()
                 db.refresh(db_export)
 
@@ -96,14 +98,19 @@ def list_exports(
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     List all exports for the current user.
     """
-    exports = db.query(Export).filter(
-        Export.user_id == current_user.id
-    ).order_by(Export.created_at.desc()).offset(skip).limit(limit).all()
+    exports = (
+        db.query(Export)
+        .filter(Export.user_id == current_user.id)
+        .order_by(Export.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
     return exports
 
@@ -112,30 +119,27 @@ def list_exports(
 def get_export(
     export_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get a specific export by ID.
     """
-    export = db.query(Export).filter(
-        Export.id == export_id,
-        Export.user_id == current_user.id
-    ).first()
+    export = (
+        db.query(Export)
+        .filter(Export.id == export_id, Export.user_id == current_user.id)
+        .first()
+    )
 
     if not export:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Export not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Export not found"
         )
 
     return export
 
 
 @router.get("/{export_id}/data")
-async def get_export_data(
-    export_id: int,
-    db: Session = Depends(get_db)
-):
+async def get_export_data(export_id: int, db: Session = Depends(get_db)):
     """
     Get export data for generating the file.
     This endpoint is called by Airflow DAG (internal call, no auth required).
@@ -145,15 +149,15 @@ async def get_export_data(
 
     if not export:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Export not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Export not found"
         )
 
     # Import here to avoid circular imports
     from sqlalchemy import text
 
     # Query applications with interview counts
-    applications_query = text("""
+    applications_query = text(
+        """
         SELECT
             p.id as process_id,
             c.name as company_name,
@@ -172,15 +176,17 @@ async def get_export_data(
         WHERE p.application_date BETWEEN :start_date AND :end_date
         GROUP BY p.id, c.name, jp.title, p.status, p.application_date, o.outcome_type, o.outcome_date
         ORDER BY p.application_date DESC
-    """)
+    """
+    )
 
     applications = db.execute(
         applications_query,
-        {"start_date": export.start_date, "end_date": export.end_date}
+        {"start_date": export.start_date, "end_date": export.end_date},
     ).fetchall()
 
     # Query interviews details
-    interviews_query = text("""
+    interviews_query = text(
+        """
         SELECT
             i.id,
             c.name as company_name,
@@ -198,15 +204,16 @@ async def get_export_data(
         JOIN hirewire.companies c ON jp.company_id = c.id
         WHERE p.application_date BETWEEN :start_date AND :end_date
         ORDER BY i.scheduled_date DESC
-    """)
+    """
+    )
 
     interviews = db.execute(
-        interviews_query,
-        {"start_date": export.start_date, "end_date": export.end_date}
+        interviews_query, {"start_date": export.start_date, "end_date": export.end_date}
     ).fetchall()
 
     # Query statistics
-    stats_query = text("""
+    stats_query = text(
+        """
         SELECT
             COUNT(DISTINCT p.id) as total_applications,
             COUNT(DISTINCT CASE WHEN o.outcome_type = 'offer' THEN p.id END) as offers_received,
@@ -217,15 +224,16 @@ async def get_export_data(
         LEFT JOIN hirewire.interview_outcomes o ON p.id = o.process_id
         LEFT JOIN hirewire.interviews i ON p.id = i.process_id
         WHERE p.application_date BETWEEN :start_date AND :end_date
-    """)
+    """
+    )
 
     stats = db.execute(
-        stats_query,
-        {"start_date": export.start_date, "end_date": export.end_date}
+        stats_query, {"start_date": export.start_date, "end_date": export.end_date}
     ).fetchone()
 
     # Query company statistics
-    company_stats_query = text("""
+    company_stats_query = text(
+        """
         SELECT
             c.name as company_name,
             COUNT(DISTINCT p.id) as applications,
@@ -239,11 +247,12 @@ async def get_export_data(
         WHERE p.application_date BETWEEN :start_date AND :end_date
         GROUP BY c.name
         ORDER BY applications DESC
-    """)
+    """
+    )
 
     company_stats = db.execute(
         company_stats_query,
-        {"start_date": export.start_date, "end_date": export.end_date}
+        {"start_date": export.start_date, "end_date": export.end_date},
     ).fetchall()
 
     return {
@@ -252,20 +261,18 @@ async def get_export_data(
             "start_date": export.start_date.isoformat(),
             "end_date": export.end_date.isoformat(),
             "format": export.format,
-            "recipient_email": export.recipient_email
+            "recipient_email": export.recipient_email,
         },
         "applications": [dict(row._mapping) for row in applications],
         "interviews": [dict(row._mapping) for row in interviews],
         "statistics": dict(stats._mapping) if stats else {},
-        "company_statistics": [dict(row._mapping) for row in company_stats]
+        "company_statistics": [dict(row._mapping) for row in company_stats],
     }
 
 
 @router.patch("/{export_id}", response_model=ExportResponse)
 def update_export_status(
-    export_id: int,
-    export_update: ExportUpdate,
-    db: Session = Depends(get_db)
+    export_id: int, export_update: ExportUpdate, db: Session = Depends(get_db)
 ):
     """
     Update export status. This endpoint is called by Airflow DAG.
@@ -275,8 +282,7 @@ def update_export_status(
 
     if not export:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Export not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Export not found"
         )
 
     # Update fields

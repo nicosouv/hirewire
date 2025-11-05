@@ -4,7 +4,7 @@ Tests for authentication API endpoints
 import pytest
 from fastapi.testclient import TestClient
 
-from app.models import User
+from app.models.user import User
 
 
 @pytest.mark.auth

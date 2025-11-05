@@ -2,6 +2,7 @@
 Database base class and imports.
 Import all models here for Alembic to detect them.
 """
+
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()

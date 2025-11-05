@@ -1,6 +1,7 @@
 """
 Job Position schemas for request/response validation.
 """
+
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field
@@ -8,6 +9,7 @@ from pydantic import BaseModel, Field
 
 class JobPositionBase(BaseModel):
     """Base schema for job position."""
+
     title: str = Field(..., min_length=1, max_length=255)
     company_id: int
     department: Optional[str] = Field(None, max_length=100)
@@ -27,11 +29,13 @@ class JobPositionBase(BaseModel):
 
 class JobPositionCreate(JobPositionBase):
     """Schema for creating a job position."""
+
     pass
 
 
 class JobPositionUpdate(BaseModel):
     """Schema for updating a job position."""
+
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     company_id: Optional[int] = None
     department: Optional[str] = Field(None, max_length=100)
@@ -51,6 +55,7 @@ class JobPositionUpdate(BaseModel):
 
 class JobPositionResponse(JobPositionBase):
     """Schema for job position response."""
+
     id: int
     created_at: datetime
     updated_at: datetime

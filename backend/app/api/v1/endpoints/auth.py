@@ -1,6 +1,7 @@
 """
 Authentication API endpoints.
 """
+
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -11,24 +12,32 @@ from app.core.security import (
     authenticate_user,
     create_access_token,
     get_password_hash,
-    get_current_user
+    get_current_user,
 )
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse, Token, UserLogin, PasswordChange, EmailChange
+from app.schemas.user import (
+    UserCreate,
+    UserResponse,
+    Token,
+    UserLogin,
+    PasswordChange,
+    EmailChange,
+)
 
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     """Register a new user."""
     # Check if user already exists
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
         )
 
     # Create new user
@@ -39,7 +48,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         last_name=user.last_name,
         is_active=user.is_active,
         is_superuser=user.is_superuser,
-        is_airflow_admin=user.is_airflow_admin
+        is_airflow_admin=user.is_airflow_admin,
     )
     db.add(db_user)
     db.commit()
@@ -50,8 +59,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
     """Login and get access token (OAuth2 compatible)."""
     user = authenticate_user(db, form_data.username, form_data.password)
@@ -67,9 +75,9 @@ def login(
         data={
             "sub": str(user.id),
             "email": user.email,
-            "is_airflow_admin": user.is_airflow_admin
+            "is_airflow_admin": user.is_airflow_admin,
         },
-        expires_delta=access_token_expires
+        expires_delta=access_token_expires,
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
@@ -91,9 +99,9 @@ def login_json(credentials: UserLogin, db: Session = Depends(get_db)):
         data={
             "sub": str(user.id),
             "email": user.email,
-            "is_airflow_admin": user.is_airflow_admin
+            "is_airflow_admin": user.is_airflow_admin,
         },
-        expires_delta=access_token_expires
+        expires_delta=access_token_expires,
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
@@ -116,11 +124,13 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
             "is_airflow_admin": current_user.is_airflow_admin,
             "created_at": current_user.created_at.isoformat(),
             "updated_at": current_user.updated_at.isoformat(),
-            "full_name": current_user.full_name
+            "full_name": current_user.full_name,
         }
     )
     response.headers["X-User-Email"] = current_user.email
-    response.headers["X-Is-Airflow-Admin"] = "true" if current_user.is_airflow_admin else "false"
+    response.headers["X-Is-Airflow-Admin"] = (
+        "true" if current_user.is_airflow_admin else "false"
+    )
     response.headers["X-User-ID"] = str(current_user.id)
 
     return response
@@ -136,16 +146,18 @@ def test_token(current_user: User = Depends(get_current_user)):
 def change_password(
     password_data: PasswordChange,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Change user password."""
     from app.core.security import verify_password
 
     # Verify current password
-    if not verify_password(password_data.current_password, current_user.hashed_password):
+    if not verify_password(
+        password_data.current_password, current_user.hashed_password
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Current password is incorrect"
+            detail="Current password is incorrect",
         )
 
     # Update password
@@ -159,7 +171,7 @@ def change_password(
 def change_email(
     email_data: EmailChange,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Change user email."""
     from app.core.security import verify_password
@@ -167,20 +179,19 @@ def change_email(
     # Verify password
     if not verify_password(email_data.password, current_user.hashed_password):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password is incorrect"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Password is incorrect"
         )
 
     # Check if new email is already taken
-    existing_user = db.query(User).filter(
-        User.email == email_data.new_email,
-        User.id != current_user.id
-    ).first()
+    existing_user = (
+        db.query(User)
+        .filter(User.email == email_data.new_email, User.id != current_user.id)
+        .first()
+    )
 
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already in use"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already in use"
         )
 
     # Update email

@@ -2,7 +2,8 @@
 Application configuration using Pydantic Settings.
 Loads from environment variables and .env file.
 """
-from typing import List
+
+from typing import List, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -26,7 +27,7 @@ class Settings(BaseSettings):
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: str | List[str]) -> List[str]:
+    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         """Parse CORS origins from string or list."""
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]
@@ -39,10 +40,13 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # Airflow (optional)
+    AIRFLOW_BASE_URL: str = "http://airflow-webserver:8080"
+    AIRFLOW_USERNAME: str = "admin"
+    AIRFLOW_PASSWORD: str = "admin"
+
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=True
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
     )
 
 

@@ -1,6 +1,7 @@
 """
 Security utilities for authentication and authorization.
 """
+
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -37,18 +38,24 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.utcnow() + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
 
     # Convert to timestamp for JWT
     to_encode.update({"exp": int(expire.timestamp())})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
 
 
 def decode_access_token(token: str) -> TokenData:
     """Decode and validate a JWT token."""
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         user_id_str: str = payload.get("sub")
         email: str = payload.get("email")
         is_airflow_admin: bool = payload.get("is_airflow_admin", False)
@@ -60,7 +67,9 @@ def decode_access_token(token: str) -> TokenData:
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        return TokenData(user_id=int(user_id_str), email=email, is_airflow_admin=is_airflow_admin)
+        return TokenData(
+            user_id=int(user_id_str), email=email, is_airflow_admin=is_airflow_admin
+        )
     except JWTError as e:
         print(f"JWT Error: {e}")  # Debug
         raise HTTPException(
@@ -81,8 +90,7 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> User:
     """Get the current authenticated user from the JWT token."""
     token_data = decode_access_token(token)
@@ -97,18 +105,18 @@ def get_current_user(
 
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
         )
 
     return user
 
 
-def get_current_active_superuser(current_user: User = Depends(get_current_user)) -> User:
+def get_current_active_superuser(
+    current_user: User = Depends(get_current_user),
+) -> User:
     """Get the current user and verify they are a superuser."""
     if not current_user.is_superuser:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
         )
     return current_user

@@ -1,8 +1,9 @@
 """
 Analytics API endpoints for visualizations (Sankey, etc.)
 """
-from typing import Dict, List, Optional
-from datetime import date, datetime, timedelta
+
+from typing import Dict, Optional
+from datetime import date
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -16,11 +17,17 @@ router = APIRouter()
 
 @router.get("/sankey/status-flow", response_model=Dict)
 def get_status_flow_sankey(
-    start_date: Optional[date] = Query(None, description="Filter processes from this date"),
-    end_date: Optional[date] = Query(None, description="Filter processes until this date"),
-    outcome_filter: Optional[str] = Query(None, description="Filter by outcome (rejected, accepted, ghosted, withdrew)"),
+    start_date: Optional[date] = Query(
+        None, description="Filter processes from this date"
+    ),
+    end_date: Optional[date] = Query(
+        None, description="Filter processes until this date"
+    ),
+    outcome_filter: Optional[str] = Query(
+        None, description="Filter by outcome (rejected, accepted, ghosted, withdrew)"
+    ),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get Sankey diagram data for application status flow.
@@ -49,15 +56,16 @@ def get_status_flow_sankey(
 
     # Create multi-stage flow: Applied → Interview Rounds → Status/Outcome
     # This query creates flows showing the interview journey
-    query = text(f"""
+    query = text(
+        f"""
         WITH process_interviews AS (
             -- Get all processes with their interview progression
             SELECT
                 ip.id as process_id,
                 io.outcome,
                 ip.status,
-                COUNT(DISTINCT CASE WHEN i.interview_type IN ('screening', 'video_screening', 'hr') THEN i.id END) as screening_count,
-                COUNT(DISTINCT CASE WHEN i.interview_type IN ('technical', 'technical_video', 'coding_challenge', 'system_design') THEN i.id END) as technical_count,
+                COUNT(DISTINCT CASE WHEN i.interview_type IN ('screening', 'video_screening', 'hr') THEN i.id END) as screening_count,  # noqa: E501
+                COUNT(DISTINCT CASE WHEN i.interview_type IN ('technical', 'technical_video', 'coding_challenge', 'system_design') THEN i.id END) as technical_count,  # noqa: E501
                 COUNT(DISTINCT CASE WHEN i.interview_type = 'behavioral' THEN i.id END) as behavioral_count,
                 COUNT(DISTINCT i.id) as total_interviews,
                 -- Determine stage based on interview progression (not just type)
@@ -192,7 +200,8 @@ def get_status_flow_sankey(
         FROM flows
         WHERE value > 0
         ORDER BY stage, source, target
-    """)
+    """
+    )
 
     results = db.execute(query, params).fetchall()
 
@@ -209,36 +218,44 @@ def get_status_flow_sankey(
 
     # Define node order and colors (progression-based)
     node_order = [
-        'Applied',
-        'No Interview', '1 Interview', '2 Interviews', '3+ Interviews',
-        'Still Applied', 'In Progress',
-        'Offer', 'Accepted', 'Rejected', 'Ghosted', 'Withdrew', 'Other Outcome'
+        "Applied",
+        "No Interview",
+        "1 Interview",
+        "2 Interviews",
+        "3+ Interviews",
+        "Still Applied",
+        "In Progress",
+        "Offer",
+        "Accepted",
+        "Rejected",
+        "Ghosted",
+        "Withdrew",
+        "Other Outcome",
     ]
 
     node_colors = {
-        'Applied': '#3B82F6',                # blue (start)
-        'No Interview': '#CBD5E1',           # light gray (no interview)
-        '1 Interview': '#8B5CF6',            # purple (first round)
-        '2 Interviews': '#EC4899',           # pink (second round)
-        '3+ Interviews': '#F59E0B',          # amber (final rounds)
-        'Still Applied': '#93C5FD',          # light blue (waiting)
-        'In Progress': '#94A3B8',            # slate (ongoing)
-        'Offer': '#10B981',                  # green (positive)
-        'Accepted': '#059669',               # dark green (success)
-        'Rejected': '#EF4444',               # red (negative)
-        'Ghosted': '#6B7280',                # gray (ghosted)
-        'Withdrew': '#F97316',               # orange (withdrew)
-        'Other Outcome': '#64748B'           # dark slate (other)
+        "Applied": "#3B82F6",  # blue (start)
+        "No Interview": "#CBD5E1",  # light gray (no interview)
+        "1 Interview": "#8B5CF6",  # purple (first round)
+        "2 Interviews": "#EC4899",  # pink (second round)
+        "3+ Interviews": "#F59E0B",  # amber (final rounds)
+        "Still Applied": "#93C5FD",  # light blue (waiting)
+        "In Progress": "#94A3B8",  # slate (ongoing)
+        "Offer": "#10B981",  # green (positive)
+        "Accepted": "#059669",  # dark green (success)
+        "Rejected": "#EF4444",  # red (negative)
+        "Ghosted": "#6B7280",  # gray (ghosted)
+        "Withdrew": "#F97316",  # orange (withdrew)
+        "Other Outcome": "#64748B",  # dark slate (other)
     }
 
     # Create ordered nodes list
     for node_name in node_order:
         if node_name in all_nodes:
             node_map[node_name] = len(nodes)
-            nodes.append({
-                "label": node_name,
-                "color": node_colors.get(node_name, '#94A3B8')
-            })
+            nodes.append(
+                {"label": node_name, "color": node_colors.get(node_name, "#94A3B8")}
+            )
 
     # Create links
     for row in results:
@@ -253,11 +270,13 @@ def get_status_flow_sankey(
 
     # Get statistics
     total_processes = db.execute(
-        text(f"""
+        text(
+            f"""
             SELECT COUNT(*) FROM hirewire.interview_processes ip
             WHERE ip.user_id = :user_id {date_filter}
-        """),
-        params
+        """
+        ),
+        params,
     ).scalar()
 
     return {
@@ -267,18 +286,22 @@ def get_status_flow_sankey(
         "filters": {
             "start_date": start_date.isoformat() if start_date else None,
             "end_date": end_date.isoformat() if end_date else None,
-            "outcome_filter": outcome_filter
-        }
+            "outcome_filter": outcome_filter,
+        },
     }
 
 
 @router.get("/sankey/company-flow", response_model=Dict)
 def get_company_flow_sankey(
-    start_date: Optional[date] = Query(None, description="Filter processes from this date"),
-    end_date: Optional[date] = Query(None, description="Filter processes until this date"),
+    start_date: Optional[date] = Query(
+        None, description="Filter processes from this date"
+    ),
+    end_date: Optional[date] = Query(
+        None, description="Filter processes until this date"
+    ),
     limit: int = Query(10, description="Top N companies to show"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get Sankey diagram data for company-to-outcome flow.
@@ -300,7 +323,8 @@ def get_company_flow_sankey(
         params["end_date"] = end_date
 
     # Query for company to outcome flow
-    query = text(f"""
+    query = text(
+        f"""
         WITH company_outcomes AS (
             SELECT
                 c.name as company_name,
@@ -324,7 +348,8 @@ def get_company_flow_sankey(
         FROM company_outcomes co
         JOIN top_companies tc ON co.company_name = tc.company_name
         ORDER BY tc.total DESC, co.count DESC
-    """)
+    """
+    )
 
     results = db.execute(query, params).fetchall()
 
@@ -343,31 +368,30 @@ def get_company_flow_sankey(
     # Add company nodes
     for company in sorted(companies):
         node_map[company] = len(nodes)
-        nodes.append({
-            "label": company,
-            "color": '#3B82F6'  # blue for companies
-        })
+        nodes.append({"label": company, "color": "#3B82F6"})  # blue for companies
 
     # Add outcome nodes
     outcome_colors = {
-        'applied': '#94A3B8',
-        'screening': '#8B5CF6',
-        'interviewing': '#EC4899',
-        'tech_test': '#6366F1',
-        'final_round': '#F59E0B',
-        'offer': '#10B981',
-        'accepted': '#059669',
-        'rejected': '#EF4444',
-        'ghosted': '#6B7280',
-        'withdrew': '#F97316'
+        "applied": "#94A3B8",
+        "screening": "#8B5CF6",
+        "interviewing": "#EC4899",
+        "tech_test": "#6366F1",
+        "final_round": "#F59E0B",
+        "offer": "#10B981",
+        "accepted": "#059669",
+        "rejected": "#EF4444",
+        "ghosted": "#6B7280",
+        "withdrew": "#F97316",
     }
 
     for outcome in sorted(outcomes):
         node_map[outcome] = len(nodes)
-        nodes.append({
-            "label": outcome.replace('_', ' ').title(),
-            "color": outcome_colors.get(outcome, '#94A3B8')
-        })
+        nodes.append(
+            {
+                "label": outcome.replace("_", " ").title(),
+                "color": outcome_colors.get(outcome, "#94A3B8"),
+            }
+        )
 
     # Create links
     links = {"source": [], "target": [], "value": []}
@@ -393,20 +417,20 @@ def get_company_flow_sankey(
         "filters": {
             "start_date": start_date.isoformat() if start_date else None,
             "end_date": end_date.isoformat() if end_date else None,
-            "limit": limit
-        }
+            "limit": limit,
+        },
     }
 
 
 @router.get("/stats/overview", response_model=Dict)
 def get_analytics_overview(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Get overview statistics for analytics dashboard.
     """
-    stats_query = text("""
+    stats_query = text(
+        """
         SELECT
             COUNT(DISTINCT ip.id) as total_applications,
             COUNT(DISTINCT CASE WHEN ip.status NOT IN ('rejected', 'ghosted', 'withdrew')
@@ -427,7 +451,8 @@ def get_analytics_overview(
         JOIN hirewire.job_positions jp ON ip.job_position_id = jp.id
         JOIN hirewire.companies c ON jp.company_id = c.id
         WHERE ip.user_id = :user_id
-    """)
+    """
+    )
 
     stats = db.execute(stats_query, {"user_id": current_user.id}).fetchone()
 
@@ -442,6 +467,12 @@ def get_analytics_overview(
         "offers_received": stats[4] or 0,
         "total_companies": stats[5] or 0,
         "avg_days_to_outcome": round(stats[6], 1) if stats[6] else 0,
-        "conversion_rate": round((stats[3] / total_applications * 100), 1) if total_applications else 0,
-        "first_interview_rate": round((processes_with_interviews / total_applications * 100), 1) if total_applications else 0
+        "conversion_rate": (
+            round((stats[3] / total_applications * 100), 1) if total_applications else 0
+        ),
+        "first_interview_rate": (
+            round((processes_with_interviews / total_applications * 100), 1)
+            if total_applications
+            else 0
+        ),
     }

@@ -5,7 +5,6 @@ RGPD-compliant profile management
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import Optional
 from datetime import datetime
 
 from app.core.security import get_current_user
@@ -26,25 +25,24 @@ router = APIRouter()
 
 # Sensitive fields that require audit logging
 SENSITIVE_FIELDS = [
-    'salary_expectations_min',
-    'salary_expectations_max',
-    'current_salary',
-    'data_processing_consent',
+    "salary_expectations_min",
+    "salary_expectations_max",
+    "current_salary",
+    "data_processing_consent",
 ]
 
 
 @router.get("/", response_model=ProfileResponse)
 def get_profile(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Get current user's profile.
     Creates an empty profile if it doesn't exist.
     """
-    profile = db.query(UserProfile).filter(
-        UserProfile.user_id == current_user.id
-    ).first()
+    profile = (
+        db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+    )
 
     if not profile:
         # Create empty profile
@@ -60,15 +58,15 @@ def get_profile(
 def update_profile(
     profile_data: ProfileUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Update current user's profile.
     Logs sensitive field changes for RGPD compliance.
     """
-    profile = db.query(UserProfile).filter(
-        UserProfile.user_id == current_user.id
-    ).first()
+    profile = (
+        db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+    )
 
     if not profile:
         profile = UserProfile(user_id=current_user.id)
@@ -109,20 +107,20 @@ def update_profile(
 def update_data_processing_consent(
     consent_data: ConsentRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Update data processing consent (RGPD requirement).
     Required for AI-powered features.
     """
-    profile = db.query(UserProfile).filter(
-        UserProfile.user_id == current_user.id
-    ).first()
+    profile = (
+        db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+    )
 
     if not profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Profile not found. Please create a profile first."
+            detail="Profile not found. Please create a profile first.",
         )
 
     # Log consent change
@@ -153,32 +151,33 @@ def update_data_processing_consent(
 
 @router.post("/export", response_model=DataExportResponse)
 def request_data_export(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Request full data export (RGPD right to data portability).
     User will receive an email with download link when ready.
     """
     # Check if there's already a pending export request
-    pending_request = db.query(DataExportRequest).filter(
-        DataExportRequest.user_id == current_user.id,
-        DataExportRequest.request_type == "export",
-        DataExportRequest.status == "pending"
-    ).first()
+    pending_request = (
+        db.query(DataExportRequest)
+        .filter(
+            DataExportRequest.user_id == current_user.id,
+            DataExportRequest.request_type == "export",
+            DataExportRequest.status == "pending",
+        )
+        .first()
+    )
 
     if pending_request:
         return DataExportResponse(
             message="You already have a pending export request. Please wait for it to complete.",
             request_id=pending_request.id,
-            status="pending"
+            status="pending",
         )
 
     # Create new export request
     export_request = DataExportRequest(
-        user_id=current_user.id,
-        request_type="export",
-        status="pending"
+        user_id=current_user.id, request_type="export", status="pending"
     )
     db.add(export_request)
     db.commit()
@@ -191,14 +190,13 @@ def request_data_export(
     return DataExportResponse(
         message="Data export requested successfully. You will receive an email when your export is ready.",
         request_id=export_request.id,
-        status="pending"
+        status="pending",
     )
 
 
 @router.delete("/", response_model=AccountDeletionResponse)
 def request_account_deletion(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Request account deletion (RGPD right to be forgotten).
@@ -206,23 +204,25 @@ def request_account_deletion(
     User can cancel deletion within this period.
     """
     # Check if there's already a pending deletion request
-    pending_request = db.query(DataExportRequest).filter(
-        DataExportRequest.user_id == current_user.id,
-        DataExportRequest.request_type == "delete",
-        DataExportRequest.status == "pending"
-    ).first()
+    pending_request = (
+        db.query(DataExportRequest)
+        .filter(
+            DataExportRequest.user_id == current_user.id,
+            DataExportRequest.request_type == "delete",
+            DataExportRequest.status == "pending",
+        )
+        .first()
+    )
 
     if pending_request:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You already have a pending deletion request."
+            detail="You already have a pending deletion request.",
         )
 
     # Create deletion request
     deletion_request = DataExportRequest(
-        user_id=current_user.id,
-        request_type="delete",
-        status="pending"
+        user_id=current_user.id, request_type="delete", status="pending"
     )
     db.add(deletion_request)
     db.commit()
@@ -233,9 +233,9 @@ def request_account_deletion(
     # schedule_account_deletion.delay(current_user.id, deletion_request.id)
 
     return AccountDeletionResponse(
-        message="Account deletion requested. Your account will be permanently deleted in 30 days. You can cancel this request anytime before then.",
+        message="Account deletion requested. Your account will be permanently deleted in 30 days. You can cancel this request anytime before then.",  # noqa: E501
         request_id=deletion_request.id,
-        grace_period_days=30
+        grace_period_days=30,
     )
 
 
@@ -243,22 +243,26 @@ def request_account_deletion(
 def cancel_account_deletion(
     request_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Cancel pending account deletion request.
     """
-    deletion_request = db.query(DataExportRequest).filter(
-        DataExportRequest.id == request_id,
-        DataExportRequest.user_id == current_user.id,
-        DataExportRequest.request_type == "delete",
-        DataExportRequest.status == "pending"
-    ).first()
+    deletion_request = (
+        db.query(DataExportRequest)
+        .filter(
+            DataExportRequest.id == request_id,
+            DataExportRequest.user_id == current_user.id,
+            DataExportRequest.request_type == "delete",
+            DataExportRequest.status == "pending",
+        )
+        .first()
+    )
 
     if not deletion_request:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Deletion request not found or already processed."
+            detail="Deletion request not found or already processed.",
         )
 
     deletion_request.status = "cancelled"
@@ -272,15 +276,19 @@ def cancel_account_deletion(
 def get_audit_log(
     limit: int = 50,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get audit log of profile changes (RGPD transparency).
     Shows last 50 changes by default.
     """
-    audit_entries = db.query(ProfileAuditLog).filter(
-        ProfileAuditLog.user_id == current_user.id
-    ).order_by(ProfileAuditLog.changed_at.desc()).limit(limit).all()
+    audit_entries = (
+        db.query(ProfileAuditLog)
+        .filter(ProfileAuditLog.user_id == current_user.id)
+        .order_by(ProfileAuditLog.changed_at.desc())
+        .limit(limit)
+        .all()
+    )
 
     return {
         "total": len(audit_entries),
@@ -292,5 +300,5 @@ def get_audit_log(
                 "changed_at": entry.changed_at,
             }
             for entry in audit_entries
-        ]
+        ],
     }

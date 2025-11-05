@@ -1,12 +1,14 @@
 """
 Dashboard schemas for statistics and analytics.
 """
+
 from typing import List, Dict, Any
 from pydantic import BaseModel
 
 
 class DashboardStats(BaseModel):
     """Overall dashboard statistics."""
+
     total_applications: int
     active_processes: int
     total_interviews: int
@@ -17,18 +19,21 @@ class DashboardStats(BaseModel):
 
 class ProcessByStatus(BaseModel):
     """Processes grouped by status."""
+
     status: str
     count: int
 
 
 class InterviewByType(BaseModel):
     """Interviews grouped by type."""
+
     interview_type: str
     count: int
 
 
 class CompanyStats(BaseModel):
     """Statistics by company."""
+
     company_name: str
     application_count: int
     interview_count: int
@@ -37,6 +42,7 @@ class CompanyStats(BaseModel):
 
 class MonthlyActivity(BaseModel):
     """Monthly activity statistics."""
+
     month: str
     applications: int
     interviews: int
@@ -44,6 +50,7 @@ class MonthlyActivity(BaseModel):
 
 class DashboardData(BaseModel):
     """Complete dashboard data."""
+
     stats: DashboardStats
     processes_by_status: List[ProcessByStatus]
     interviews_by_type: List[InterviewByType]

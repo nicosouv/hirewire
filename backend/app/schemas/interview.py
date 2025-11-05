@@ -1,13 +1,15 @@
 """
 Interview schemas for request/response validation.
 """
-from datetime import date, datetime
+
+from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field
 
 
 class InterviewBase(BaseModel):
     """Base schema for interview."""
+
     process_id: int
     interview_type: Optional[str] = Field(None, max_length=100)
     interview_round: int = Field(..., ge=1)
@@ -24,9 +26,12 @@ class InterviewBase(BaseModel):
 
 class InterviewCreate(BaseModel):
     """Schema for creating an interview. interview_round is auto-calculated if not provided."""
+
     process_id: int
     interview_type: Optional[str] = Field(None, max_length=100)
-    interview_round: Optional[int] = Field(None, ge=1, description="Auto-calculated if not provided")
+    interview_round: Optional[int] = Field(
+        None, ge=1, description="Auto-calculated if not provided"
+    )
     scheduled_date: Optional[datetime] = None
     actual_date: Optional[datetime] = None
     duration_minutes: Optional[int] = Field(None, ge=0)
@@ -40,6 +45,7 @@ class InterviewCreate(BaseModel):
 
 class InterviewUpdate(BaseModel):
     """Schema for updating an interview."""
+
     process_id: Optional[int] = None
     interview_type: Optional[str] = Field(None, max_length=100)
     interview_round: Optional[int] = Field(None, ge=1)
@@ -56,6 +62,7 @@ class InterviewUpdate(BaseModel):
 
 class InterviewResponse(InterviewBase):
     """Schema for interview response."""
+
     id: int
     created_at: datetime
     updated_at: datetime

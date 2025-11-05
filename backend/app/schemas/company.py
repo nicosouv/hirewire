@@ -1,6 +1,7 @@
 """
 Company Pydantic schemas for validation and serialization.
 """
+
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
@@ -8,6 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 class CompanyBase(BaseModel):
     """Base company schema with common fields."""
+
     name: str
     industry: Optional[str] = None
     size: Optional[str] = None
@@ -17,11 +19,13 @@ class CompanyBase(BaseModel):
 
 class CompanyCreate(CompanyBase):
     """Schema for creating a company."""
+
     pass
 
 
 class CompanyUpdate(BaseModel):
     """Schema for updating a company."""
+
     name: Optional[str] = None
     industry: Optional[str] = None
     size: Optional[str] = None
@@ -31,6 +35,7 @@ class CompanyUpdate(BaseModel):
 
 class CompanyInDB(CompanyBase):
     """Schema for company from database."""
+
     id: int
     created_at: datetime
     updated_at: datetime
@@ -40,4 +45,5 @@ class CompanyInDB(CompanyBase):
 
 class Company(CompanyInDB):
     """Public company schema."""
+
     pass

@@ -1,6 +1,7 @@
 """
 User schemas for request/response validation.
 """
+
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
@@ -8,6 +9,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 class UserBase(BaseModel):
     """Base schema for user."""
+
     email: EmailStr
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
@@ -18,11 +20,13 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """Schema for creating a user."""
+
     password: str = Field(..., min_length=8, max_length=100)
 
 
 class UserUpdate(BaseModel):
     """Schema for updating a user."""
+
     email: Optional[EmailStr] = None
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -34,6 +38,7 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     """Schema for user response."""
+
     id: int
     created_at: datetime
     updated_at: datetime
@@ -45,18 +50,21 @@ class UserResponse(UserBase):
 
 class UserLogin(BaseModel):
     """Schema for user login."""
+
     email: EmailStr
     password: str
 
 
 class Token(BaseModel):
     """Schema for JWT token response."""
+
     access_token: str
     token_type: str = "bearer"
 
 
 class TokenData(BaseModel):
     """Schema for token payload data."""
+
     user_id: Optional[int] = None
     email: Optional[str] = None
     is_airflow_admin: Optional[bool] = False
@@ -64,11 +72,15 @@ class TokenData(BaseModel):
 
 class PasswordChange(BaseModel):
     """Schema for changing password."""
+
     current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8, max_length=100)
 
 
 class EmailChange(BaseModel):
     """Schema for changing email."""
+
     new_email: EmailStr
-    password: str = Field(..., min_length=1, description="Current password for verification")
+    password: str = Field(
+        ..., min_length=1, description="Current password for verification"
+    )

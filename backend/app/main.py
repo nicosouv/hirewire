@@ -2,6 +2,7 @@
 FastAPI application entry point.
 HireWire Backend API - v0.4.7
 """
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings

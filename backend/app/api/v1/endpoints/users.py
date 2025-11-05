@@ -1,6 +1,7 @@
 """
 Users management API endpoints (admin only).
 """
+
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -18,7 +19,7 @@ def list_users(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_superuser)
+    current_user: User = Depends(get_current_active_superuser),
 ):
     """List all users (admin only)."""
     users = db.query(User).offset(skip).limit(limit).all()
@@ -29,14 +30,14 @@ def list_users(
 def get_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_superuser)
+    current_user: User = Depends(get_current_active_superuser),
 ):
     """Get a specific user by ID (admin only)."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {user_id} not found"
+            detail=f"User with id {user_id} not found",
         )
     return user
 
@@ -45,15 +46,14 @@ def get_user(
 def create_user(
     user: UserCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_superuser)
+    current_user: User = Depends(get_current_active_superuser),
 ):
     """Create a new user (admin only)."""
     # Check if user already exists
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
         )
 
     # Create new user
@@ -63,7 +63,7 @@ def create_user(
         first_name=user.first_name,
         last_name=user.last_name,
         is_active=user.is_active,
-        is_superuser=user.is_superuser
+        is_superuser=user.is_superuser,
     )
     db.add(db_user)
     db.commit()
@@ -77,14 +77,14 @@ def update_user(
     user_id: int,
     user: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_superuser)
+    current_user: User = Depends(get_current_active_superuser),
 ):
     """Update a user (admin only)."""
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {user_id} not found"
+            detail=f"User with id {user_id} not found",
         )
 
     update_data = user.model_dump(exclude_unset=True)
@@ -106,21 +106,21 @@ def update_user(
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_superuser)
+    current_user: User = Depends(get_current_active_superuser),
 ):
     """Delete a user (admin only)."""
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {user_id} not found"
+            detail=f"User with id {user_id} not found",
         )
 
     # Don't allow deleting yourself
     if db_user.id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You cannot delete your own account"
+            detail="You cannot delete your own account",
         )
 
     db.delete(db_user)

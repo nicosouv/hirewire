@@ -1,6 +1,7 @@
 """
 Interview API endpoints with ProcessStatusService integration.
 """
+
 from typing import List
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -22,7 +23,7 @@ def list_interviews(
     limit: int = 100,
     process_id: int = None,
     status: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List all interviews with optional filtering."""
     query = db.query(Interview)
@@ -30,7 +31,9 @@ def list_interviews(
         query = query.filter(Interview.process_id == process_id)
     if status:
         query = query.filter(Interview.status == status)
-    interviews = query.order_by(Interview.scheduled_date.desc()).offset(skip).limit(limit).all()
+    interviews = (
+        query.order_by(Interview.scheduled_date.desc()).offset(skip).limit(limit).all()
+    )
     return interviews
 
 
@@ -41,7 +44,7 @@ def get_interview(interview_id: int, db: Session = Depends(get_db)):
     if not interview:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Interview with id {interview_id} not found"
+            detail=f"Interview with id {interview_id} not found",
         )
     return interview
 
@@ -50,21 +53,27 @@ def get_interview(interview_id: int, db: Session = Depends(get_db)):
 def create_interview(interview: InterviewCreate, db: Session = Depends(get_db)):
     """Create a new interview and update process status accordingly."""
     # Verify process exists
-    process = db.query(InterviewProcess).filter(InterviewProcess.id == interview.process_id).first()
+    process = (
+        db.query(InterviewProcess)
+        .filter(InterviewProcess.id == interview.process_id)
+        .first()
+    )
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Interview process with id {interview.process_id} not found"
+            detail=f"Interview process with id {interview.process_id} not found",
         )
 
     # Auto-calculate interview_round if not provided
     interview_data = interview.model_dump()
     if interview_data.get("interview_round") is None:
         # Get the max interview_round for this process
-        max_round = db.query(Interview.interview_round)\
-            .filter(Interview.process_id == interview.process_id)\
-            .order_by(Interview.interview_round.desc())\
+        max_round = (
+            db.query(Interview.interview_round)
+            .filter(Interview.process_id == interview.process_id)
+            .order_by(Interview.interview_round.desc())
             .first()
+        )
 
         interview_data["interview_round"] = (max_round[0] + 1) if max_round else 1
 
@@ -80,7 +89,7 @@ def create_interview(interview: InterviewCreate, db: Session = Depends(get_db)):
     if process:
         db.execute(
             text("SELECT * FROM hirewire.check_achievements(:user_id)"),
-            {"user_id": process.user_id}
+            {"user_id": process.user_id},
         )
         db.commit()
 
@@ -89,16 +98,14 @@ def create_interview(interview: InterviewCreate, db: Session = Depends(get_db)):
 
 @router.put("/{interview_id}", response_model=InterviewResponse)
 def update_interview(
-    interview_id: int,
-    interview: InterviewUpdate,
-    db: Session = Depends(get_db)
+    interview_id: int, interview: InterviewUpdate, db: Session = Depends(get_db)
 ):
     """Update an interview and cascade status changes to process."""
     db_interview = db.query(Interview).filter(Interview.id == interview_id).first()
     if not db_interview:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Interview with id {interview_id} not found"
+            detail=f"Interview with id {interview_id} not found",
         )
 
     update_data = interview.model_dump(exclude_unset=True)
@@ -116,9 +123,7 @@ def update_interview(
 
 @router.patch("/{interview_id}/complete", response_model=InterviewResponse)
 def mark_interview_completed(
-    interview_id: int,
-    actual_date: date = None,
-    db: Session = Depends(get_db)
+    interview_id: int, actual_date: date = None, db: Session = Depends(get_db)
 ):
     """Mark a past scheduled interview as completed."""
     updated_interview = ProcessStatusService.update_past_interview_to_completed(
@@ -134,7 +139,7 @@ def delete_interview(interview_id: int, db: Session = Depends(get_db)):
     if not db_interview:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Interview with id {interview_id} not found"
+            detail=f"Interview with id {interview_id} not found",
         )
 
     db.delete(db_interview)

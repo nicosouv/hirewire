@@ -11,6 +11,7 @@ dbt_project/target/
 dbt_project/dbt_packages/
 dbt_project/logs/
 .venv
+dbt_project/venv
 
 # DuckDB files
 *.duckdb
@@ -37,6 +38,11 @@ __pycache__/
 backend/__pycache__/
 backend/*.egg-info/
 .pytest_cache/
+backend/venv
+backend/.coverage
+
+# Airflow
+airflow/venv
 
 # Node / Frontend
 node_modules/

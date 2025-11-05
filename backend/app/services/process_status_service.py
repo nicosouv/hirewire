@@ -2,6 +2,7 @@
 Interview Process Status Service.
 Handles cascading status updates like etl_update_process_status.sh
 """
+
 from datetime import date
 from sqlalchemy.orm import Session
 from app.models import InterviewProcess, Interview, InterviewOutcome
@@ -32,8 +33,7 @@ class ProcessStatusService:
 
     @staticmethod
     def update_process_status_from_interview(
-        db: Session,
-        interview: Interview
+        db: Session, interview: Interview
     ) -> InterviewProcess:
         """
         Update process status when interview status changes.
@@ -43,9 +43,11 @@ class ProcessStatusService:
         - Check if any interviews completed → keep 'interviewing'
         - If all interviews are scheduled, first one completed → 'screening'
         """
-        process = db.query(InterviewProcess).filter(
-            InterviewProcess.id == interview.process_id
-        ).first()
+        process = (
+            db.query(InterviewProcess)
+            .filter(InterviewProcess.id == interview.process_id)
+            .first()
+        )
 
         if not process:
             raise ValueError(f"Process {interview.process_id} not found")
@@ -57,10 +59,13 @@ class ProcessStatusService:
 
         if new_status:
             # Check if there are any completed interviews
-            completed_count = db.query(Interview).filter(
-                Interview.process_id == process.id,
-                Interview.status == "completed"
-            ).count()
+            completed_count = (
+                db.query(Interview)
+                .filter(
+                    Interview.process_id == process.id, Interview.status == "completed"
+                )
+                .count()
+            )
 
             if completed_count > 0:
                 new_status = "interviewing"
@@ -76,8 +81,7 @@ class ProcessStatusService:
 
     @staticmethod
     def update_process_status_from_outcome(
-        db: Session,
-        outcome: InterviewOutcome
+        db: Session, outcome: InterviewOutcome
     ) -> InterviewProcess:
         """
         Update process status when outcome is added/updated.
@@ -90,16 +94,16 @@ class ProcessStatusService:
         - ghosted → 'ghosted'
         - withdrew → 'withdrew'
         """
-        process = db.query(InterviewProcess).filter(
-            InterviewProcess.id == outcome.process_id
-        ).first()
+        process = (
+            db.query(InterviewProcess)
+            .filter(InterviewProcess.id == outcome.process_id)
+            .first()
+        )
 
         if not process:
             raise ValueError(f"Process {outcome.process_id} not found")
 
-        new_status = ProcessStatusService.OUTCOME_TO_PROCESS_STATUS.get(
-            outcome.outcome
-        )
+        new_status = ProcessStatusService.OUTCOME_TO_PROCESS_STATUS.get(outcome.outcome)
 
         if new_status:
             process.status = new_status
@@ -111,9 +115,7 @@ class ProcessStatusService:
 
     @staticmethod
     def update_past_interview_to_completed(
-        db: Session,
-        interview_id: int,
-        actual_date: date
+        db: Session, interview_id: int, actual_date: date
     ) -> Interview:
         """
         Update past scheduled interview to completed.
@@ -124,9 +126,7 @@ class ProcessStatusService:
         - Set status to 'completed'
         - Update process status to 'interviewing' or 'screening'
         """
-        interview = db.query(Interview).filter(
-            Interview.id == interview_id
-        ).first()
+        interview = db.query(Interview).filter(Interview.id == interview_id).first()
 
         if not interview:
             raise ValueError(f"Interview {interview_id} not found")
@@ -145,10 +145,7 @@ class ProcessStatusService:
         return interview
 
     @staticmethod
-    def auto_update_process_status(
-        db: Session,
-        process_id: int
-    ) -> InterviewProcess:
+    def auto_update_process_status(db: Session, process_id: int) -> InterviewProcess:
         """
         Automatically infer and update process status based on current state.
 
@@ -158,25 +155,27 @@ class ProcessStatusService:
         3. If interviews scheduled → 'screening'
         4. Otherwise → keep 'applied'
         """
-        process = db.query(InterviewProcess).filter(
-            InterviewProcess.id == process_id
-        ).first()
+        process = (
+            db.query(InterviewProcess).filter(InterviewProcess.id == process_id).first()
+        )
 
         if not process:
             raise ValueError(f"Process {process_id} not found")
 
         # Check for outcome (highest priority)
-        outcome = db.query(InterviewOutcome).filter(
-            InterviewOutcome.process_id == process_id
-        ).first()
+        outcome = (
+            db.query(InterviewOutcome)
+            .filter(InterviewOutcome.process_id == process_id)
+            .first()
+        )
 
         if outcome:
             return ProcessStatusService.update_process_status_from_outcome(db, outcome)
 
         # Check for interviews
-        interviews = db.query(Interview).filter(
-            Interview.process_id == process_id
-        ).all()
+        interviews = (
+            db.query(Interview).filter(Interview.process_id == process_id).all()
+        )
 
         if interviews:
             completed = any(i.status == "completed" for i in interviews)

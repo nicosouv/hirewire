@@ -10,6 +10,7 @@ from datetime import datetime, date
 
 class AchievementBase(BaseModel):
     """Base achievement schema"""
+
     code: str
     name: str
     description: str
@@ -22,6 +23,7 @@ class AchievementBase(BaseModel):
 
 class AchievementResponse(AchievementBase):
     """Achievement response schema"""
+
     id: int
     is_active: bool
     created_at: datetime
@@ -32,6 +34,7 @@ class AchievementResponse(AchievementBase):
 
 class UserAchievementResponse(BaseModel):
     """User achievement response"""
+
     id: int
     user_id: int
     achievement_id: int
@@ -46,6 +49,7 @@ class UserAchievementResponse(BaseModel):
 
 class UserStatsResponse(BaseModel):
     """User stats response"""
+
     id: int
     user_id: int
     total_points: int
@@ -66,6 +70,7 @@ class UserStatsResponse(BaseModel):
 
 class GamificationDashboard(BaseModel):
     """Complete gamification dashboard"""
+
     stats: UserStatsResponse
     recent_achievements: List[UserAchievementResponse]
     progress_to_next_level: float
@@ -77,6 +82,7 @@ class GamificationDashboard(BaseModel):
 
 class LeaderboardEntry(BaseModel):
     """Leaderboard entry"""
+
     rank: int
     user_id: int
     full_name: str
@@ -88,13 +94,17 @@ class LeaderboardEntry(BaseModel):
 
 class ActivityLogCreate(BaseModel):
     """Create activity log"""
-    activity_type: str = Field(..., description="application, interview, profile_update, login")
+
+    activity_type: str = Field(
+        ..., description="application, interview, profile_update, login"
+    )
     activity_date: Optional[date] = None
     activity_metadata: Optional[Dict[str, Any]] = None
 
 
 class AchievementUnlocked(BaseModel):
     """Achievement unlocked notification"""
+
     achievement_id: int
     achievement_code: str
     name: str
