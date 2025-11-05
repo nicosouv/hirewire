@@ -49,7 +49,26 @@ def get_interview(interview_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=InterviewResponse, status_code=status.HTTP_201_CREATED)
 def create_interview(interview: InterviewCreate, db: Session = Depends(get_db)):
     """Create a new interview and update process status accordingly."""
-    db_interview = Interview(**interview.model_dump())
+    # Verify process exists
+    process = db.query(InterviewProcess).filter(InterviewProcess.id == interview.process_id).first()
+    if not process:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Interview process with id {interview.process_id} not found"
+        )
+
+    # Auto-calculate interview_round if not provided
+    interview_data = interview.model_dump()
+    if interview_data.get("interview_round") is None:
+        # Get the max interview_round for this process
+        max_round = db.query(Interview.interview_round)\
+            .filter(Interview.process_id == interview.process_id)\
+            .order_by(Interview.interview_round.desc())\
+            .first()
+
+        interview_data["interview_round"] = (max_round[0] + 1) if max_round else 1
+
+    db_interview = Interview(**interview_data)
     db.add(db_interview)
     db.commit()
     db.refresh(db_interview)
@@ -58,7 +77,6 @@ def create_interview(interview: InterviewCreate, db: Session = Depends(get_db)):
     ProcessStatusService.update_process_status_from_interview(db, db_interview)
 
     # Check and unlock achievements
-    process = db.query(InterviewProcess).filter(InterviewProcess.id == db_interview.process_id).first()
     if process:
         db.execute(
             text("SELECT * FROM hirewire.check_achievements(:user_id)"),

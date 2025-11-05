@@ -12,7 +12,8 @@ import {
   Plus,
   Zap,
   Settings,
-  ChevronDown
+  ChevronDown,
+  BarChart3
 } from 'lucide-react';
 
 const PRO_TIPS = [
@@ -75,6 +76,7 @@ export default function NewLayout() {
   const navigation = [
     { name: 'Overview', path: '/', icon: LayoutDashboard },
     { name: 'Applications', path: '/applications', icon: Briefcase },
+    { name: 'Analytics', path: '/analytics', icon: BarChart3 },
   ];
 
   const isActive = (path: string) => {

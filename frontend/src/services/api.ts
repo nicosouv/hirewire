@@ -15,6 +15,7 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 10000,
+  // withCredentials: true, // Temporarily disabled for debugging
 });
 
 // Request interceptor (for auth tokens, logging, etc.)

@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import NewDashboard from './pages/NewDashboard';
 import Applications from './pages/Applications';
 import Settings from './pages/Settings';
+import Analytics from './pages/Analytics';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         >
           <Route index element={<NewDashboard />} />
           <Route path="applications" element={<Applications />} />
+          <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 

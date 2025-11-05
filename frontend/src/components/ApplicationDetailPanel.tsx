@@ -48,7 +48,6 @@ export default function ApplicationDetailPanel({
   const [interviewForm, setInterviewForm] = useState({
     scheduled_date: new Date().toISOString().split('T')[0],
     interview_type: 'technical',
-    interview_round: 1,
     interviewer_name: '',
     notes: '',
     status: 'scheduled' as const,
@@ -86,7 +85,6 @@ export default function ApplicationDetailPanel({
       setInterviewForm({
         scheduled_date: new Date().toISOString().split('T')[0],
         interview_type: 'technical',
-        interview_round: interviews.length + 1,
         interviewer_name: '',
         notes: '',
         status: 'scheduled',
@@ -300,17 +298,6 @@ export default function ApplicationDetailPanel({
                       required
                       value={interviewForm.scheduled_date}
                       onChange={(e) => setInterviewForm({ ...interviewForm, scheduled_date: e.target.value })}
-                      className="w-full px-3 py-2 border border-sand bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-honey-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-anthracite/70 mb-1">Round</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={interviewForm.interview_round}
-                      onChange={(e) => setInterviewForm({ ...interviewForm, interview_round: parseInt(e.target.value) })}
                       className="w-full px-3 py-2 border border-sand bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-honey-500"
                     />
                   </div>
