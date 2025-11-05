@@ -64,6 +64,14 @@ Documentation complète pour le projet HireWire - Plateforme d'analyse d'entreti
 
 ### CI/CD & Déploiement
 
+#### Release Workflow (Nouveau! 🎯)
+
+- **[RELEASE_WORKFLOW.md](RELEASE_WORKFLOW.md)** ⭐ **Tests automatiques sur tags**
+  - Tests exhaustifs avant chaque release
+  - Build bloqué si tests échouent
+  - Architecture des workflows de release
+  - Guide complet du processus de release
+
 #### Tests Unifiés (Nouveau! ⭐)
 
 - **[CICD_SUMMARY.md](CICD_SUMMARY.md)** ⭐ **COMMENCER ICI** - Résumé CI/CD unifié

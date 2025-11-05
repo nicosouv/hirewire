@@ -17,8 +17,31 @@ env:
   IMAGE_PREFIX: ${{ github.repository_owner }}/hirewire
 
 jobs:
+  # Wait for tests to complete on release tags
+  # This ensures we only build images if all tests pass
+  wait-for-tests:
+    runs-on: ubuntu-latest
+    # Only wait for tests on tag pushes (not on manual workflow_dispatch)
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Wait for CI tests to complete
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'ci-tests-summary'  # Wait for the summary job from ci-tests-on-tag.yml
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 20  # Check every 20 seconds
+
+      - name: Tests completed successfully
+        run: |
+          echo "✅ All tests passed!"
+          echo "🚀 Proceeding with Docker image builds..."
+
   # Detect which services changed since last tag
   detect-changes:
+    # Depend on tests passing (skip dependency on manual triggers)
+    needs: [wait-for-tests]
+    if: always() && (needs.wait-for-tests.result == 'success' || needs.wait-for-tests.result == 'skipped')
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.changes.outputs.backend }}

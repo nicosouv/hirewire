@@ -1,0 +1,223 @@
+name: CI - Tests on Release Tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on semantic version tags
+
+# Cancel in-progress runs for the same workflow
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Run ALL tests on release tags (no change detection)
+  # This ensures quality before building and pushing Docker images
+
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_hirewire
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run linting
+        run: |
+          cd backend
+          pip install black flake8 mypy
+          black --check app/
+          flake8 app/ --max-line-length=120 --exclude=__pycache__
+
+      - name: Run tests with coverage
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_hirewire
+          SECRET_KEY: test-secret-key-for-ci-only-not-for-production
+          ACCESS_TOKEN_EXPIRE_MINUTES: 30
+        run: |
+          cd backend
+          pytest --cov=app --cov-report=xml --cov-report=term-missing -v
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: ['20.x']
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run linting
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Run TypeScript check
+        run: |
+          cd frontend
+          npm run typecheck
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Run tests with coverage
+        run: |
+          cd frontend
+          if grep -q '"test"' package.json; then
+            npm test -- --run --coverage
+          else
+            echo "⏭️  No test script found in package.json, skipping tests"
+          fi
+
+  airflow-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install Airflow and dependencies
+        run: |
+          cd airflow
+          pip install -r requirements-test.txt
+
+      - name: Run DAG integrity tests
+        run: |
+          cd airflow
+          pytest tests/ -v --cov=dags --cov-report=xml
+
+  dbt-validation:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hirewire
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install DBT and DuckDB
+        run: |
+          pip install dbt-core dbt-duckdb dbt-postgres
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Setup test database
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d hirewire -f sql/postgres/001_schema.sql || true
+
+      - name: DBT deps
+        run: |
+          cd dbt_project
+          dbt deps
+
+      - name: DBT compile (validation)
+        run: |
+          cd dbt_project
+          dbt compile --target postgres
+
+      - name: DBT parse (check for errors)
+        run: |
+          cd dbt_project
+          dbt parse
+
+  # Summary job - blocks build if any test fails
+  ci-tests-summary:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, airflow-tests, dbt-validation]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "🏷️  Release Tag Tests Summary"
+          echo "=============================="
+          echo "Backend tests: ${{ needs.backend-tests.result }}"
+          echo "Frontend tests: ${{ needs.frontend-tests.result }}"
+          echo "Airflow tests: ${{ needs.airflow-tests.result }}"
+          echo "DBT validation: ${{ needs.dbt-validation.result }}"
+          echo ""
+
+          # Fail if any required job failed
+          if [ "${{ needs.backend-tests.result }}" == "failure" ] || \
+             [ "${{ needs.frontend-tests.result }}" == "failure" ] || \
+             [ "${{ needs.airflow-tests.result }}" == "failure" ] || \
+             [ "${{ needs.dbt-validation.result }}" == "failure" ]; then
+            echo "❌ Some tests failed - blocking Docker image build"
+            echo "⚠️  Fix the failing tests before creating a release"
+            exit 1
+          fi
+
+          echo "✅ All tests passed! Docker images will be built."
+          echo "📦 Check the 'Build and Push Docker Images' workflow for image builds."
