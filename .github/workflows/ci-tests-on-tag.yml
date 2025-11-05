@@ -191,14 +191,16 @@ jobs:
           dbt deps
 
       - name: DBT compile (validation)
+        env:
+          DBT_PROFILES_DIR: ../profiles
         run: |
           cd dbt_project
-          dbt compile --target postgres
+          dbt compile --target postgres --profiles-dir ../profiles
 
       - name: DBT parse (check for errors)
         run: |
           cd dbt_project
-          dbt parse
+          dbt parse --profiles-dir ../profiles
 
   # Summary job - blocks build if any test fails
   ci-tests-summary:

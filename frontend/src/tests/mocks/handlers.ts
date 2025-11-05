@@ -6,8 +6,20 @@ import { http, HttpResponse } from 'msw';
 const API_URL = 'http://localhost:8000/api/v1';
 
 export const handlers = [
-  // GET /companies - List all companies
-  http.get(`${API_URL}/companies/`, () => {
+  // Handle OPTIONS requests (CORS preflight)
+  http.options(`${API_URL}/*`, () => {
+    return new HttpResponse(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
+  }),
+
+  // GET /companies - List all companies (without trailing slash)
+  http.get(`${API_URL}/companies`, () => {
     return HttpResponse.json([
       {
         id: 1,
@@ -32,8 +44,8 @@ export const handlers = [
     ]);
   }),
 
-  // POST /companies - Create a new company
-  http.post(`${API_URL}/companies/`, async ({ request }) => {
+  // POST /companies - Create a new company (without trailing slash)
+  http.post(`${API_URL}/companies`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(
       {
@@ -48,7 +60,7 @@ export const handlers = [
 
   // GET /companies/:id - Get single company
   http.get(`${API_URL}/companies/:id`, ({ params }) => {
-    const { id } = params;
+    const { id} = params;
     return HttpResponse.json({
       id: Number(id),
       name: `Test Company ${id}`,
