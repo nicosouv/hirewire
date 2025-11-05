@@ -50,7 +50,15 @@ export default function ApplicationCard({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
       className={`
         bg-white rounded-xl border-2 border-sand/50 hover:border-honey-300
         transition-all cursor-pointer group hover:shadow-md
@@ -74,6 +82,7 @@ export default function ApplicationCard({
         {/* Actions Menu */}
         <div className="relative">
           <button
+            aria-label="More options"
             onClick={(e) => {
               e.stopPropagation();
               setShowMenu(!showMenu);

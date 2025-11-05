@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@/tests/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import ApplicationCard from '../ApplicationCard';
 import type { Process, Position, Company } from '@/types';
 
@@ -81,10 +82,11 @@ describe('ApplicationCard', () => {
     expect(statusElement).toBeInTheDocument();
   });
 
-  it('should call onClick handler when clicked', () => {
+  it('should call onClick handler when clicked', async () => {
     const handleClick = vi.fn();
+    const user = userEvent.setup();
 
-    render(
+    const { container } = render(
       <ApplicationCard
         process={mockProcess}
         position={mockPosition}
@@ -93,8 +95,13 @@ describe('ApplicationCard', () => {
       />
     );
 
-    const card = screen.getByRole('button');
-    card.click();
+    // Get the main card container (first div with role="button")
+    const card = container.querySelector('[role="button"]');
+    expect(card).toBeInTheDocument();
+
+    if (card) {
+      await user.click(card);
+    }
 
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
@@ -158,11 +165,12 @@ describe('ApplicationCard', () => {
     expect(screen.getByText('Today')).toBeInTheDocument();
   });
 
-  it('should show menu when more button is clicked', () => {
+  it('should show menu when more button is clicked', async () => {
     const handleDelete = vi.fn();
     const handleEdit = vi.fn();
+    const user = userEvent.setup();
 
-    render(
+    const { container } = render(
       <ApplicationCard
         process={mockProcess}
         position={mockPosition}
@@ -172,12 +180,18 @@ describe('ApplicationCard', () => {
       />
     );
 
-    // Find and click the more button (MoreVertical icon)
-    const moreButton = screen.getByRole('button', { name: /more/i });
-    if (moreButton) {
-      moreButton.click();
-      // Menu should appear
-      // Add assertions for menu items
+    // Find the card and hover over it to reveal the more button
+    const card = container.querySelector('[role="button"]');
+    if (card) {
+      await user.hover(card);
     }
+
+    // Find and click the more button (MoreVertical icon)
+    const moreButton = screen.getByRole('button', { name: /more options/i });
+    await user.click(moreButton);
+
+    // Menu should appear with Edit and Delete options
+    expect(screen.getByText('Edit')).toBeInTheDocument();
+    expect(screen.getByText('Delete')).toBeInTheDocument();
   });
 });
