@@ -145,11 +145,14 @@ docs/
 ├── CICD_UNIFIED_TESTS.md           # Guide complet tests unifiés
 ├── CICD_MIGRATION_COMPARISON.md    # Comparaison Avant/Après
 ├── CICD_ACTION_PLAN.md             # Plan de migration 4 semaines
+├── CICD_FIXES.md                   # Corrections erreurs CI
 ├── CICD_QUICKREF.md                # CI/CD quick ref (legacy)
 ├── CICD_GUIDE.md                   # CI/CD complet (legacy)
 ├── PRODUCTION_DEPLOYMENT.md        # Déploiement prod
 ├── TESTING_QUICKREF.md             # Tests quick ref
-└── TESTING_GUIDE.md                # Tests complet
+├── TESTING_GUIDE.md                # Tests complet
+├── FRONTEND_VITEST_SETUP.md        # Setup Vitest frontend
+└── SESSION_RECAP_2025-01-12.md     # Récap session 12 jan 2025
 ```
 
 ## 🔗 Liens Utiles
@@ -209,9 +212,12 @@ Ce README est l'index principal de la documentation. Pour contribuer :
 
 ### 🆕 Nouveautés (12 janvier 2025)
 
-**Tests CI/CD Unifiés** - Nouvelle approche pour unifier les tests locaux et CI/CD via `build.sh`:
-- ✅ Une seule source de vérité pour tous les tests
-- ✅ Mêmes commandes en local et dans la CI (`./build.sh --all`)
+**Tests CI/CD Unifiés + Vitest Frontend** - Refonte complète de l'approche testing:
+- ✅ Une seule source de vérité pour tous les tests (`build.sh`)
+- ✅ Mêmes commandes en local et dans la CI
 - ✅ 47% de réduction du code YAML (150 → 80 lignes)
-- ✅ Élimine les problèmes "ça marche sur ma machine"
+- ✅ Vitest configuré pour le frontend (9/11 tests passing)
+- ✅ Erreurs CI backend/frontend corrigées
+- ✅ 7 documents de documentation créés
 - 📖 Voir [CICD_SUMMARY.md](CICD_SUMMARY.md) pour commencer
+- 📖 Voir [SESSION_RECAP_2025-01-12.md](SESSION_RECAP_2025-01-12.md) pour le récap complet

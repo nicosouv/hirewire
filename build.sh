@@ -226,7 +226,11 @@ if [ "$RUN_BACKEND" = true ]; then
         if [ -f "../.env" ]; then
             export $(cat ../.env | grep -v '^#' | xargs)
         fi
+
+        # Set default environment variables for tests
         export DATABASE_URL=${DATABASE_URL:-"sqlite:///./test.db"}
+        export SECRET_KEY=${SECRET_KEY:-"test-secret-key-for-local-dev-only"}
+        export ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
 
         # Generate both terminal and XML reports (XML for CI/CD coverage upload)
         if pytest --cov=app --cov-report=term-missing --cov-report=xml -v; then
