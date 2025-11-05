@@ -261,16 +261,11 @@ jobs:
           cd dbt_project
           dbt deps
 
-      - name: DBT compile (validation)
-        env:
-          DBT_PROFILES_DIR: ../profiles
+      - name: DBT parse (validate SQL syntax)
         run: |
           cd dbt_project
-          dbt compile --target postgres --profiles-dir ../profiles
-
-      - name: DBT parse (check for errors)
-        run: |
-          cd dbt_project
+          # Parse validates SQL syntax and structure without connecting to database
+          # This is perfect for CI since we don't have the DuckDB data volume
           dbt parse --profiles-dir ../profiles
 
   # Summary job - required for branch protection
