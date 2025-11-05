@@ -1,5 +1,6 @@
 /**
  * Tests for useCompanies hook
+ * Uses MSW (Mock Service Worker) to mock API calls
  */
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
