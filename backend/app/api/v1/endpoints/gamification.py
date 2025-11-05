@@ -75,7 +75,9 @@ def get_gamification_dashboard(
         db.refresh(stats)
 
     # Get all achievements
-    all_achievements = db.query(Achievement).filter(Achievement.is_active.is_(True)).all()
+    all_achievements = (
+        db.query(Achievement).filter(Achievement.is_active.is_(True)).all()
+    )
 
     # Get user's unlocked achievements
     unlocked = (

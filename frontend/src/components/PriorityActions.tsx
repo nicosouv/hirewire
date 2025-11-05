@@ -36,6 +36,7 @@ export default function PriorityActions({
 
   // 1. Upcoming interviews (within 48 hours) - HIGH PRIORITY
   const upcomingInterviews = interviews.filter(i => {
+    if (!i.scheduled_date) return false;
     const interviewDate = new Date(i.scheduled_date);
     const hoursUntil = (interviewDate.getTime() - now.getTime()) / (1000 * 60 * 60);
     return i.status === 'scheduled' && hoursUntil > 0 && hoursUntil <= 48;
@@ -46,7 +47,7 @@ export default function PriorityActions({
     const position = positions.find(p => p.id === process?.job_position_id);
     const company = companies.find(c => c.id === position?.company_id);
 
-    if (position && company && process) {
+    if (position && company && process && interview.scheduled_date) {
       const interviewDate = new Date(interview.scheduled_date);
       const hoursUntil = Math.round((interviewDate.getTime() - now.getTime()) / (1000 * 60 * 60));
 
@@ -72,7 +73,7 @@ export default function PriorityActions({
 
     // Check if no recent interviews
     const hasRecentInterview = interviews.some(i => {
-      if (i.process_id !== p.id) return false;
+      if (i.process_id !== p.id || !i.scheduled_date) return false;
       const interviewDaysAgo = Math.floor(
         (now.getTime() - new Date(i.scheduled_date).getTime()) / (1000 * 60 * 60 * 24)
       );
@@ -145,9 +146,6 @@ export default function PriorityActions({
   recentApplications.slice(0, 1).forEach(process => {
     const position = positions.find(p => p.id === process.job_position_id);
     const company = companies.find(c => c.id === position?.company_id);
-    const daysAgo = Math.floor(
-      (now.getTime() - new Date(process.application_date).getTime()) / (1000 * 60 * 60 * 24)
-    );
 
     if (position && company) {
       actions.push({

@@ -53,8 +53,9 @@ class ProcessStatusService:
             raise ValueError(f"Process {interview.process_id} not found")
 
         # Get mapping for interview status
+        interview_status: str = str(interview.status)
         new_status = ProcessStatusService.INTERVIEW_STATUS_TO_PROCESS_STATUS.get(
-            interview.status
+            interview_status
         )
 
         if new_status:
@@ -103,7 +104,8 @@ class ProcessStatusService:
         if not process:
             raise ValueError(f"Process {outcome.process_id} not found")
 
-        new_status = ProcessStatusService.OUTCOME_TO_PROCESS_STATUS.get(outcome.outcome)
+        outcome_value: str = str(outcome.outcome)
+        new_status = ProcessStatusService.OUTCOME_TO_PROCESS_STATUS.get(outcome_value)
 
         if new_status:
             process.status = new_status
@@ -133,8 +135,8 @@ class ProcessStatusService:
 
         # Only update if scheduled and date is in past
         if interview.status == "scheduled" and actual_date < date.today():
-            interview.status = "completed"
-            interview.actual_date = actual_date
+            setattr(interview, "status", "completed")
+            setattr(interview, "actual_date", actual_date)
             db.add(interview)
             db.commit()
             db.refresh(interview)
@@ -182,9 +184,9 @@ class ProcessStatusService:
             scheduled = any(i.status == "scheduled" for i in interviews)
 
             if completed:
-                process.status = "interviewing"
+                setattr(process, "status", "interviewing")
             elif scheduled:
-                process.status = "screening"
+                setattr(process, "status", "screening")
 
             db.add(process)
             db.commit()

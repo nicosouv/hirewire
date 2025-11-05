@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Calendar, MapPin, DollarSign, Building2, Briefcase, ExternalLink, Clock, User, MessageSquare, Edit2, Plus, Check } from 'lucide-react';
 import { useInterviews, useCreateInterview } from '../hooks/useInterviews';
 import { useUpdateProcess } from '../hooks/useProcesses';
-import type { Process, Position, Company } from '../types';
+import type { Process, Position, Company, ProcessStatus } from '../types';
 
 interface ApplicationDetailPanelProps {
   process: Process;
@@ -54,7 +54,7 @@ export default function ApplicationDetailPanel({
   });
 
   const interviews = allInterviews?.filter((i) => i.process_id === process.id) || [];
-  const sortedInterviews = [...interviews].sort((a, b) => a.interview_round - b.interview_round);
+  const sortedInterviews = [...interviews].sort((a, b) => (a.interview_round || 0) - (b.interview_round || 0));
 
   const statusConfig = STATUS_CONFIG[process.status] || STATUS_CONFIG.applied;
 
@@ -127,7 +127,7 @@ export default function ApplicationDetailPanel({
                 <div className="flex items-center gap-2">
                   <select
                     value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    onChange={(e) => setSelectedStatus(e.target.value as ProcessStatus)}
                     className="px-3 py-1 border-2 border-honey-500 rounded-lg text-xs font-semibold focus:outline-none"
                   >
                     <option value="applied">Applied</option>
@@ -186,10 +186,16 @@ export default function ApplicationDetailPanel({
                   <span className="text-anthracite/70">{position.location}</span>
                 </div>
               )}
-              {position.salary_range && (
+              {(position.salary_min || position.salary_max) && (
                 <div className="flex items-center gap-2 text-sm">
                   <DollarSign className="w-4 h-4 text-anthracite/60" />
-                  <span className="text-anthracite/70">{position.salary_range}</span>
+                  <span className="text-anthracite/70">
+                    {position.salary_min && position.salary_max
+                      ? `${position.salary_min}-${position.salary_max}k`
+                      : position.salary_min
+                      ? `${position.salary_min}k+`
+                      : `Up to ${position.salary_max}k`}
+                  </span>
                 </div>
               )}
               {position.employment_type && (
@@ -381,7 +387,7 @@ export default function ApplicationDetailPanel({
                       <div className="flex items-center gap-2 text-sm text-anthracite/60 mt-2">
                         <Calendar className="w-3.5 h-3.5" />
                         <span>
-                          {new Date(interview.scheduled_date).toLocaleDateString('en-US', {
+                          {interview.scheduled_date && new Date(interview.scheduled_date).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric',

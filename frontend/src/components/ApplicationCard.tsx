@@ -1,4 +1,4 @@
-import { Calendar, DollarSign, MapPin, Clock, MoreVertical, Trash2, Edit, ArrowRight } from 'lucide-react';
+import { DollarSign, MapPin, Clock, MoreVertical, Trash2, Edit, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import type { Process, Position, Company } from '../types';
 
@@ -134,10 +134,16 @@ export default function ApplicationCard({
               <span>{position.location}</span>
             </div>
           )}
-          {position.salary_range && (
+          {(position.salary_min || position.salary_max) && (
             <div className="flex items-center gap-1.5 text-xs text-anthracite/60">
               <DollarSign className="w-3.5 h-3.5" />
-              <span>{position.salary_range}</span>
+              <span>
+                {position.salary_min && position.salary_max
+                  ? `${position.salary_min}-${position.salary_max}k`
+                  : position.salary_min
+                  ? `${position.salary_min}k+`
+                  : `Up to ${position.salary_max}k`}
+              </span>
             </div>
           )}
         </div>

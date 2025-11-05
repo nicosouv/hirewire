@@ -10,7 +10,6 @@ import {
   LogOut,
   User,
   Plus,
-  Zap,
   Settings,
   ChevronDown,
   BarChart3

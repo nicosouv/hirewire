@@ -71,6 +71,8 @@ class TestAuthEndpoints:
         user_data = {
             "email": "newuser@example.com",
             "password": "newpassword123",
+            "first_name": "New",
+            "last_name": "User",
         }
 
         response = client.post("/api/v1/auth/register", json=user_data)
@@ -133,7 +135,7 @@ class TestAuthEndpoints:
         from datetime import timedelta
 
         expired_token = create_access_token(
-            subject="1", expires_delta=timedelta(seconds=-1)
+            data={"sub": "1", "email": "test@example.com"}, expires_delta=timedelta(seconds=-1)
         )
         headers = {"Authorization": f"Bearer {expired_token}"}
 

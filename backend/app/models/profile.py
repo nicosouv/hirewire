@@ -38,12 +38,12 @@ class UserProfile(Base):
     current_job_title = Column(String(255))
     target_job_title = Column(String(255))
     years_of_experience = Column(Integer)
-    industries = Column(ARRAY(Text))
+    industries: Column[list] = Column(ARRAY(Text))
 
     # Skills & Education
-    skills = Column(ARRAY(Text))
+    skills: Column[list] = Column(ARRAY(Text))
     education_level = Column(String(100))
-    certifications = Column(ARRAY(Text))
+    certifications: Column[list] = Column(ARRAY(Text))
     languages = Column(JSONB)  # [{"language": "English", "proficiency": "fluent"}, ...]
 
     # Work preferences
@@ -89,8 +89,7 @@ class UserProfile(Base):
         CheckConstraint(
             "profile_visibility IN ('private', 'public')", name="check_visibility"
         ),
-        {"schema": "hirewire"},
-    )
+    ) + ({"schema": "hirewire"},)
 
 
 class DataExportRequest(Base):
@@ -122,8 +121,7 @@ class DataExportRequest(Base):
             "status IN ('pending', 'completed', 'failed', 'cancelled')",
             name="check_status",
         ),
-        {"schema": "hirewire"},
-    )
+    ) + ({"schema": "hirewire"},)
 
 
 class ProfileAuditLog(Base):

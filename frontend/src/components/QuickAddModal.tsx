@@ -12,7 +12,7 @@ interface QuickAddModalProps {
 }
 
 export default function QuickAddModal({ isOpen, onClose, companies, positions }: QuickAddModalProps) {
-  const [step, setStep] = useState<'company' | 'position' | 'process'>('process');
+  const [, setStep] = useState<'company' | 'position' | 'process'>('process');
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [selectedPositionId, setSelectedPositionId] = useState<string>('');
   const [showNewCompany, setShowNewCompany] = useState(false);

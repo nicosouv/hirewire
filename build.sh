@@ -7,7 +7,7 @@
 
 set -e  # Exit on any error
 
-# Colors for output
+# Colors for output (will be disabled in CI mode)
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -69,6 +69,7 @@ RUN_FRONTEND=false
 RUN_AIRFLOW=false
 RUN_DBT=false
 AUTO_FIX=false
+CI_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -96,6 +97,10 @@ while [[ $# -gt 0 ]]; do
             AUTO_FIX=true
             shift
             ;;
+        --ci)
+            CI_MODE=true
+            shift
+            ;;
         --help|-h)
             echo "Usage: ./build.sh [OPTIONS]"
             echo ""
@@ -106,12 +111,14 @@ while [[ $# -gt 0 ]]; do
             echo "  --airflow         Run Airflow checks only"
             echo "  --dbt             Run DBT checks only"
             echo "  --fix             Auto-fix issues when possible (format code)"
+            echo "  --ci              CI mode (no colors, verbose output)"
             echo "  --help, -h        Show this help message"
             echo ""
             echo "Examples:"
             echo "  ./build.sh --all                 # Run all checks"
             echo "  ./build.sh --backend --fix       # Check & format backend"
             echo "  ./build.sh -b -f                 # Check backend & frontend"
+            echo "  ./build.sh --backend --ci        # Backend checks in CI mode"
             exit 0
             ;;
         *)
@@ -134,9 +141,21 @@ if [ "$RUN_ALL" = true ]; then
     RUN_DBT=true
 fi
 
+# Disable colors in CI mode
+if [ "$CI_MODE" = true ]; then
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    NC=''
+fi
+
 print_header "🚀 HireWire Build & Test"
 echo "Running checks: Backend=$RUN_BACKEND | Frontend=$RUN_FRONTEND | Airflow=$RUN_AIRFLOW | DBT=$RUN_DBT"
 echo "Auto-fix: $AUTO_FIX"
+if [ "$CI_MODE" = true ]; then
+    echo "CI Mode: Enabled (no colors, verbose output)"
+fi
 
 ###############################################################################
 # BACKEND CHECKS
@@ -209,7 +228,8 @@ if [ "$RUN_BACKEND" = true ]; then
         fi
         export DATABASE_URL=${DATABASE_URL:-"sqlite:///./test.db"}
 
-        if pytest --cov=app --cov-report=term-missing -v; then
+        # Generate both terminal and XML reports (XML for CI/CD coverage upload)
+        if pytest --cov=app --cov-report=term-missing --cov-report=xml -v; then
             print_status "success" "Pytest passed"
         else
             print_status "failure" "Pytest failed"
@@ -357,7 +377,7 @@ if [ "$RUN_DBT" = true ]; then
 
         # DBT parse
         print_status "info" "Running dbt parse..."
-        if dbt parse; then
+        if dbt parse --profiles-dir ../profiles; then
             print_status "success" "DBT parse passed"
         else
             print_status "failure" "DBT parse failed"

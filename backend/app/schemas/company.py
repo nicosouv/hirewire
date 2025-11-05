@@ -4,13 +4,13 @@ Company Pydantic schemas for validation and serialization.
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CompanyBase(BaseModel):
     """Base company schema with common fields."""
 
-    name: str
+    name: str = Field(..., min_length=1, max_length=255)
     industry: Optional[str] = None
     size: Optional[str] = None
     location: Optional[str] = None

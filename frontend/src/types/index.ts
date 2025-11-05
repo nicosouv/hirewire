@@ -18,13 +18,17 @@ export interface JobPosition {
   id: number;
   company_id: number;
   title: string;
+  department?: string;
   level?: string;
+  employment_type?: string; // full_time, part_time, contract, etc.
   contract_type?: string;
   salary_min?: number;
   salary_max?: number;
+  currency?: string;
   location?: string;
   remote_policy?: string;
   job_description?: string;
+  description?: string; // Alias for job_description
   requirements?: string;
   benefits?: string;
   application_url?: string;
@@ -48,7 +52,7 @@ export interface Interview {
   id: number;
   process_id: number;
   interview_type?: string;
-  interview_round: number;
+  interview_round?: number; // Auto-calculated by API if not provided
   scheduled_date?: string;
   actual_date?: string;
   duration_minutes?: number;
@@ -58,6 +62,7 @@ export interface Interview {
   feedback?: string;
   rating?: number;
   technical_topics?: string;
+  notes?: string; // Added missing field
   created_at: string;
   updated_at: string;
 }

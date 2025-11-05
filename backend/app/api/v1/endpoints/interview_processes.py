@@ -13,6 +13,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.models.interview_process import InterviewProcess
 from app.models.interview_outcome import InterviewOutcome
+from app.models.job_position import JobPosition
 from app.schemas.interview_process import (
     InterviewProcessCreate,
     InterviewProcessUpdate,
@@ -28,6 +29,7 @@ def list_interview_processes(
     limit: int = 100,
     job_position_id: int = None,
     status: str = None,
+    active: bool = None,
     db: Session = Depends(get_db),
 ):
     """List all interview processes with optional filtering."""
@@ -36,6 +38,21 @@ def list_interview_processes(
         query = query.filter(InterviewProcess.job_position_id == job_position_id)
     if status:
         query = query.filter(InterviewProcess.status == status)
+    if active is not None:
+        if active:
+            # Active processes exclude terminal statuses
+            query = query.filter(
+                InterviewProcess.status.notin_(
+                    ["rejected", "accepted", "withdrew", "ghosted"]
+                )
+            )
+        else:
+            # Inactive processes are only those with terminal statuses
+            query = query.filter(
+                InterviewProcess.status.in_(
+                    ["rejected", "accepted", "withdrew", "ghosted"]
+                )
+            )
     processes = (
         query.order_by(InterviewProcess.application_date.desc())
         .offset(skip)
@@ -68,6 +85,16 @@ def create_interview_process(
     db: Session = Depends(get_db),
 ):
     """Create a new interview process."""
+    # Verify that the job position exists
+    position = (
+        db.query(JobPosition).filter(JobPosition.id == process.job_position_id).first()
+    )
+    if not position:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job position with id {process.job_position_id} not found",
+        )
+
     # Add user_id from authenticated user
     process_data = process.model_dump()
     process_data["user_id"] = current_user.id
@@ -77,12 +104,13 @@ def create_interview_process(
     db.commit()
     db.refresh(db_process)
 
-    # Check and unlock achievements
-    db.execute(
-        text("SELECT * FROM hirewire.check_achievements(:user_id)"),
-        {"user_id": current_user.id},
-    )
-    db.commit()
+    # Check and unlock achievements (skip for SQLite tests)
+    if db.bind.dialect.name == "postgresql":
+        db.execute(
+            text("SELECT * FROM hirewire.check_achievements(:user_id)"),
+            {"user_id": current_user.id},
+        )
+        db.commit()
 
     return db_process
 

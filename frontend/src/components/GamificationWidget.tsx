@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../services/api';
 import { Trophy, Star, Flame, Target, Award } from 'lucide-react';

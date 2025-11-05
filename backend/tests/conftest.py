@@ -89,6 +89,8 @@ def test_user(db: Session) -> User:
     user = User(
         email="test@example.com",
         hashed_password=get_password_hash("testpassword"),
+        first_name="Test",
+        last_name="User",
         is_active=True,
         is_airflow_admin=False,
     )
@@ -108,6 +110,8 @@ def admin_user(db: Session) -> User:
     user = User(
         email="admin@example.com",
         hashed_password=get_password_hash("adminpassword"),
+        first_name="Admin",
+        last_name="User",
         is_active=True,
         is_airflow_admin=True,
     )
@@ -122,7 +126,11 @@ def auth_token(test_user: User) -> str:
     """
     Generate a valid JWT token for the test user.
     """
-    return create_access_token(subject=str(test_user.id))
+    from datetime import timedelta
+    return create_access_token(
+        data={"sub": str(test_user.id), "email": test_user.email},
+        expires_delta=timedelta(hours=1)  # Longer expiry for tests
+    )
 
 
 @pytest.fixture
@@ -130,7 +138,11 @@ def admin_token(admin_user: User) -> str:
     """
     Generate a valid JWT token for the admin user.
     """
-    return create_access_token(subject=str(admin_user.id))
+    from datetime import timedelta
+    return create_access_token(
+        data={"sub": str(admin_user.id), "email": admin_user.email, "is_airflow_admin": True},
+        expires_delta=timedelta(hours=1)  # Longer expiry for tests
+    )
 
 
 @pytest.fixture
@@ -190,7 +202,7 @@ def test_position(db: Session, test_company: Company) -> JobPosition:
 
 
 @pytest.fixture
-def test_process(db: Session, test_position: JobPosition) -> InterviewProcess:
+def test_process(db: Session, test_position: JobPosition, test_user: User) -> InterviewProcess:
     """
     Create a test interview process.
     """
@@ -198,6 +210,7 @@ def test_process(db: Session, test_position: JobPosition) -> InterviewProcess:
 
     process = InterviewProcess(
         job_position_id=test_position.id,
+        user_id=test_user.id,
         application_date=date.today(),
         status="applied",
         source="LinkedIn",

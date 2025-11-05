@@ -1,14 +1,10 @@
 import { useRef } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
+import HighchartsSankey from 'highcharts/modules/sankey';
 
-// Import and initialize Sankey module
-import sankeyInit from 'highcharts/modules/sankey';
-
-// Initialize Sankey module only once
-if (typeof Highcharts === 'object' && !Highcharts.seriesTypes.sankey) {
-  sankeyInit(Highcharts);
-}
+// Initialize Sankey module with type assertion
+(HighchartsSankey as any)(Highcharts);
 
 interface SankeyNode {
   label: string;
@@ -38,11 +34,11 @@ export default function SankeyChart({ nodes, links, title, height = 700 }: Sanke
     weight: links.value[i],
   }));
 
-  // Create node colors map
-  const nodeColors = nodes.reduce((acc, node) => {
-    acc[node.label] = node.color;
-    return acc;
-  }, {} as Record<string, string>);
+  // Create node colors map (not used currently but kept for future enhancements)
+  // const nodeColors = nodes.reduce((acc, node) => {
+  //   acc[node.label] = node.color;
+  //   return acc;
+  // }, {} as Record<string, string>);
 
   const options: Highcharts.Options = {
     chart: {
@@ -64,7 +60,6 @@ export default function SankeyChart({ nodes, links, title, height = 700 }: Sanke
     tooltip: {
       headerFormat: '',
       pointFormat: '<b>{point.from}</b> → <b>{point.to}</b><br/>Applications: <b>{point.weight}</b>',
-      nodeFormat: '<b>{point.name}</b><br/>Total: <b>{point.sum}</b>',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       borderRadius: 12,
       borderWidth: 2,

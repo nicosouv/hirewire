@@ -64,6 +64,34 @@ Documentation complète pour le projet HireWire - Plateforme d'analyse d'entreti
 
 ### CI/CD & Déploiement
 
+#### Tests Unifiés (Nouveau! ⭐)
+
+- **[CICD_SUMMARY.md](CICD_SUMMARY.md)** ⭐ **COMMENCER ICI** - Résumé CI/CD unifié
+  - Une seule source de vérité: `build.sh`
+  - Mêmes commandes en local et dans la CI
+  - 47% de réduction du code YAML
+  - Guide de migration en 4 semaines
+
+- **[CICD_UNIFIED_TESTS.md](CICD_UNIFIED_TESTS.md)** - Guide complet des tests unifiés
+  - Architecture et motivation
+  - Utilisation de `build.sh`
+  - Migration depuis l'ancienne approche
+  - FAQ et troubleshooting
+
+- **[CICD_MIGRATION_COMPARISON.md](CICD_MIGRATION_COMPARISON.md)** - Comparaison Avant/Après
+  - Analyse détaillée des changements
+  - Métriques et statistiques
+  - Réduction de la complexité
+  - Exemples concrets
+
+- **[CICD_ACTION_PLAN.md](CICD_ACTION_PLAN.md)** - Plan d'action migration
+  - Timeline de 4 semaines
+  - Validation en parallèle
+  - Critères de succès
+  - Plan de rollback
+
+#### CI/CD Legacy
+
 - **[CICD_QUICKREF.md](CICD_QUICKREF.md)** - Quick reference CI/CD
   - Commandes rapides
   - Workflow overview
@@ -75,6 +103,8 @@ Documentation complète pour le projet HireWire - Plateforme d'analyse d'entreti
   - Setup et validation
   - Scénarios d'utilisation
   - Troubleshooting
+
+#### Déploiement
 
 - **[PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)** - Déploiement production
   - Utilisation des images GHCR
@@ -98,23 +128,28 @@ Documentation complète pour le projet HireWire - Plateforme d'analyse d'entreti
 
 ```
 docs/
-├── README.md                    # Ce fichier (index)
-├── QUICKSTART.md                # Démarrage rapide
-├── ARCHITECTURE.md              # Architecture système
-├── DATA_PIPELINE.md             # Pipeline ETL/DBT
-├── WEB_APP.md                   # Application web
-├── FRONTEND.md                  # Frontend React
-├── WEBAPP_QUICKSTART.md         # Quick start web app
-├── UX_REDESIGN.md              # Redesign UX
-├── AIRFLOW.md                   # Airflow setup
-├── AIRFLOW_AUTH.md              # Airflow auth
-├── AIRFLOW_TESTING.md           # Airflow tests
-├── EXPORTS.md                   # Système d'export
-├── CICD_QUICKREF.md             # CI/CD quick ref
-├── CICD_GUIDE.md                # CI/CD complet (includes setup)
-├── PRODUCTION_DEPLOYMENT.md     # Déploiement prod
-├── TESTING_QUICKREF.md          # Tests quick ref
-└── TESTING_GUIDE.md             # Tests complet
+├── README.md                       # Ce fichier (index)
+├── QUICKSTART.md                   # Démarrage rapide
+├── ARCHITECTURE.md                 # Architecture système
+├── DATA_PIPELINE.md                # Pipeline ETL/DBT
+├── WEB_APP.md                      # Application web
+├── FRONTEND.md                     # Frontend React
+├── WEBAPP_QUICKSTART.md            # Quick start web app
+├── UX_REDESIGN.md                  # Redesign UX
+├── AIRFLOW.md                      # Airflow setup
+├── AIRFLOW_AUTH.md                 # Airflow auth
+├── AIRFLOW_TESTING.md              # Airflow tests
+├── EXPORTS.md                      # Système d'export
+├── GAMIFICATION_AUDIT.md           # Audit gamification
+├── CICD_SUMMARY.md                 # ⭐ CI/CD unifié (START HERE)
+├── CICD_UNIFIED_TESTS.md           # Guide complet tests unifiés
+├── CICD_MIGRATION_COMPARISON.md    # Comparaison Avant/Après
+├── CICD_ACTION_PLAN.md             # Plan de migration 4 semaines
+├── CICD_QUICKREF.md                # CI/CD quick ref (legacy)
+├── CICD_GUIDE.md                   # CI/CD complet (legacy)
+├── PRODUCTION_DEPLOYMENT.md        # Déploiement prod
+├── TESTING_QUICKREF.md             # Tests quick ref
+└── TESTING_GUIDE.md                # Tests complet
 ```
 
 ## 🔗 Liens Utiles
@@ -170,4 +205,13 @@ Ce README est l'index principal de la documentation. Pour contribuer :
 
 ---
 
-**Dernière mise à jour**: 2 novembre 2025 - v0.4.7
+**Dernière mise à jour**: 12 janvier 2025 - v0.4.7+
+
+### 🆕 Nouveautés (12 janvier 2025)
+
+**Tests CI/CD Unifiés** - Nouvelle approche pour unifier les tests locaux et CI/CD via `build.sh`:
+- ✅ Une seule source de vérité pour tous les tests
+- ✅ Mêmes commandes en local et dans la CI (`./build.sh --all`)
+- ✅ 47% de réduction du code YAML (150 → 80 lignes)
+- ✅ Élimine les problèmes "ça marche sur ma machine"
+- 📖 Voir [CICD_SUMMARY.md](CICD_SUMMARY.md) pour commencer
