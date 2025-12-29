@@ -1,4 +1,4 @@
-FROM ghcr.io/dbt-labs/dbt-core:1.10.13
+FROM ghcr.io/dbt-labs/dbt-core:1.11.2
 
 # Install additional DBT adapters
 RUN pip install \
