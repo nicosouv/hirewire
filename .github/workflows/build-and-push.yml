@@ -25,7 +25,7 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Wait for CI tests to complete
-        uses: lewagon/wait-on-check-action@v1.3.4
+        uses: lewagon/wait-on-check-action@v1.5.0
         with:
           ref: ${{ github.ref }}
           check-name: 'ci-tests-summary'  # Wait for the summary job from ci-tests-on-tag.yml
